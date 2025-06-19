@@ -112,7 +112,6 @@
                 </div>
                 
                 <div id="action-container" class="mt-6 text-center space-y-3">
-                   <button id="show-roles-btn" class="hidden w-full bg-indigo-500 text-white font-bold py-3 px-6 rounded-lg text-lg btn">Show All Roles</button>
                    <button id="play-again-btn" class="hidden w-full bg-teal-500 text-white font-bold py-3 px-6 rounded-lg text-lg btn">Play Next Round</button>
                 </div>
             </div>
@@ -155,7 +154,6 @@
         const authStatus = document.getElementById('auth-status');
         const copyIdBtn = document.getElementById('copy-id-btn');
         const playAgainBtn = document.getElementById('play-again-btn');
-        const showRolesBtn = document.getElementById('show-roles-btn');
         const emojiBar = document.getElementById('emoji-bar');
 
         // --- Initialization ---
@@ -214,7 +212,7 @@
                 gameId: currentGameId,
                 players: { [userId]: newPlayer },
                 playerOrder: [userId],
-                gameState: 'lobby', // lobby, waiting_for_guess, guess_made, round_over
+                gameState: 'lobby',
                 round: 0,
                 reactions: {},
                 createdAt: new Date(),
@@ -227,19 +225,28 @@
             if (!name) return;
             const gameId = gameIdInput.value.trim().toUpperCase();
             if (!gameId) { alert("Please enter a Game ID."); return; }
+
+            console.log(`Player ${name} (${userId}) attempting to join game ${gameId}`);
             const gameRef = doc(db, `artifacts/${appId}/public/data/games`, gameId);
-            const gameSnap = await getDoc(gameRef);
-            if (!gameSnap.exists()) { alert("Game not found."); return; }
-            const gameData = gameSnap.data();
-            if (Object.keys(gameData.players).length >= 4 && !gameData.players[userId]) { alert("This game room is full."); return; }
-            if (!gameData.players[userId]) {
-                const newPlayer = { name, score: 0 };
-                const newPlayers = { ...gameData.players, [userId]: newPlayer };
-                const newPlayerOrder = [...gameData.playerOrder, userId];
-                await updateDoc(gameRef, { players: newPlayers, playerOrder: newPlayerOrder });
+            
+            try {
+                const gameSnap = await getDoc(gameRef);
+                if (!gameSnap.exists()) { alert("Game not found."); return; }
+                const gameData = gameSnap.data();
+                if (Object.keys(gameData.players).length >= 4 && !gameData.players[userId]) { alert("This game room is full."); return; }
+                if (!gameData.players[userId]) {
+                    const newPlayer = { name, score: 0 };
+                    const newPlayers = { ...gameData.players, [userId]: newPlayer };
+                    const newPlayerOrder = [...gameData.playerOrder, userId];
+                    await updateDoc(gameRef, { players: newPlayers, playerOrder: newPlayerOrder });
+                    console.log(`Successfully updated DB for player ${userId} to join game ${gameId}`);
+                }
+                currentGameId = gameId;
+                subscribeToGame(gameId);
+            } catch(error) {
+                console.error(`Failed to join game ${gameId}. Error:`, error);
+                alert("Error: Could not join the game. This might be a permissions issue. Check the console (F12) for details.");
             }
-            currentGameId = gameId;
-            subscribeToGame(gameId);
         };
         
         const subscribeToGame = (gameId) => {
@@ -305,13 +312,11 @@
                 if (updatedPlayers[pid]) updatedPlayers[pid].score += roundScores[pid];
             }
             await updateDoc(gameRef, {
-                gameState: 'guess_made',
+                gameState: 'round_over', // Go directly to round_over
                 guessResult: { isCorrect, roundScores },
                 players: updatedPlayers
             });
         };
-        
-        const showRoles = async () => await updateDoc(doc(db, `artifacts/${appId}/public/data/games`, currentGameId), { gameState: 'round_over' });
         
         const playAgain = async () => {
             const gameSnap = await getDoc(doc(db, `artifacts/${appId}/public/data/games`, currentGameId));
@@ -351,7 +356,7 @@
             // My Chit
             const myChitCard = document.getElementById('my-chit-card');
             const myChitBack = document.getElementById('my-chit-back');
-            const roleEmojis = { 'Raju': '👑', 'Mantri': '�', 'Donga': '👺', 'Police': '👮‍♂️' };
+            const roleEmojis = { 'Raju': '👑', 'Mantri': '👸', 'Donga': '👺', 'Police': '👮‍♂️' };
             const roleColors = { 'Raju': 'bg-amber-400', 'Mantri': 'bg-fuchsia-400', 'Donga': 'bg-rose-500', 'Police': 'bg-sky-500' };
             myChitBack.innerHTML = `<span class="text-4xl">${roleEmojis[me.role]}</span><p class="font-bold text-xl mt-1">${me.role}</p>`;
             myChitBack.className = `card-back w-full h-full p-4 rounded-lg flex flex-col items-center justify-center shadow-lg text-white ${roleColors[me.role]}`;
@@ -372,22 +377,18 @@
 
             // Status Text and Action Buttons
             const statusText = document.getElementById('status-text');
-            showRolesBtn.classList.add('hidden');
             playAgainBtn.classList.add('hidden');
-            if (gameState === 'waiting_for_guess') statusText.textContent = isPolice ? 'Guess who is the Donga!' : `Waiting for Police (${players[policeId].name}) to guess...`;
-            else if (gameState === 'guess_made') {
-                statusText.innerHTML = guessResult.isCorrect ? `✅ Correct Guess!` : `❌ Wrong Guess!`;
-                showRolesBtn.classList.remove('hidden');
+            if (gameState === 'waiting_for_guess') {
+                statusText.textContent = isPolice ? 'Guess who is the Donga!' : `Waiting for Police (${players[policeId].name}) to guess...`;
             } else if (gameState === 'round_over') {
                 const scoreGained = guessResult.roundScores[userId];
-                statusText.innerHTML = guessResult.isCorrect ? `The Donga was caught! <span class="font-normal">(You got ${scoreGained} pts)</span>` : `The Donga escaped! <span class="font-normal">(You got ${scoreGained} pts)</span>`;
+                statusText.innerHTML = guessResult.isCorrect ? `✅ Correct! The Donga was caught! <span class="font-normal">(+${scoreGained} pts)</span>` : `❌ Wrong! The Donga escaped! <span class="font-normal">(+${scoreGained} pts)</span>`;
                 if (isHost) playAgainBtn.classList.remove('hidden');
             }
 
             // Scoreboard
             const scoresList = document.getElementById('scores-list');
             scoresList.innerHTML = '';
-            // FIX: Create a copy of the array before sorting to avoid mutating the original
             const sortedPlayerOrder = [...playerOrder].sort((a, b) => players[b].score - players[a].score);
             sortedPlayerOrder.forEach(pid => {
                 scoresList.innerHTML += `<div class="flex justify-between items-center text-sm p-2 rounded-md ${pid === userId ? 'bg-teal-50' : ''}"><span class="font-semibold">${players[pid].name} ${pid === userId ? '(You)' : ''}</span><span class="font-bold text-teal-600">${players[pid].score} pts</span></div>`;
@@ -395,13 +396,14 @@
         };
         
         // --- Reactions ---
-        const emojis = ['👍', '😂', '🤔', '👎', '🎉', '🤯'];
+        const emojis = ['�', '😂', '🤔', '👎', '🎉', '🤯'];
         emojiBar.innerHTML = emojis.map(e => `<button class="text-2xl p-2 rounded-full hover:bg-gray-200 transition-colors">${e}</button>`).join('');
         emojiBar.addEventListener('click', e => {
             if (e.target.tagName === 'BUTTON') sendReaction(e.target.textContent);
         });
 
         const sendReaction = async (emoji) => {
+            if (!currentGameId) return;
             await updateDoc(doc(db, `artifacts/${appId}/public/data/games`, currentGameId), {
                 [`reactions.${userId}`]: { emoji, timestamp: Date.now() }
             });
@@ -416,7 +418,6 @@
                     const reactionEl = document.createElement('div');
                     reactionEl.className = 'emoji-reaction';
                     reactionEl.textContent = gameData.reactions[pid].emoji;
-                    // Position randomly at the bottom
                     reactionEl.style.left = `${Math.random() * 80 + 10}%`;
                     reactionOverlay.appendChild(reactionEl);
                     setTimeout(() => reactionEl.remove(), 2000);
@@ -435,7 +436,6 @@
         window.onload = initializeFirebase;
         createGameBtn.addEventListener('click', createGame);
         joinGameBtn.addEventListener('click', joinGame);
-        showRolesBtn.addEventListener('click', showRoles);
         playAgainBtn.addEventListener('click', playAgain);
         copyIdBtn.addEventListener('click', () => {
             navigator.clipboard.writeText(document.getElementById('lobby-game-id').textContent).then(() => {
