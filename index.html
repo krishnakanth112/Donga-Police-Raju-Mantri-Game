@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Donga Police: Raja Rani Edition</title>
+    <title>Donga Police: Royal Chits Game</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // Polyfill for process error in browser environment
         window.process = { env: { NODE_ENV: 'development' } };
     </script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -20,22 +19,19 @@
             --surface-dark: #1f2937; --surface-light: #ffffff;
             --primary: #3b82f6;
         }
-        html.dark {
-            --bg-main: var(--bg-dark); --text-main: var(--text-dark); --surface-main: var(--surface-dark);
-        }
-        html:not(.dark) {
-            --bg-main: var(--bg-light); --text-main: var(--text-light); --surface-main: var(--surface-light);
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-main); color: var(--text-main);
-            transition: background-color 0.3s, color 0.3s;
-        }
+        html.dark { --bg-main: var(--bg-dark); --text-main: var(--text-dark); --surface-main: var(--surface-dark); }
+        html:not(.dark) { --bg-main: var(--bg-light); --text-main: var(--text-light); --surface-main: var(--surface-light); }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-main); color: var(--text-main); }
+        .screen { display: none; width: 100%; height: 100%; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 1.25rem; box-sizing: border-box; position: absolute; top: 0; left: 0; opacity: 0; transition: opacity 0.5s ease-in-out; }
+        .screen.active { display: flex; opacity: 1; z-index: 10; }
+        .btn { padding: 0.75rem 1.75rem; font-size: 1.1rem; font-weight: bold; border-radius: 0.75rem; cursor: pointer; transition: all 0.2s ease; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .chit-scene { perspective: 1000px; }
         .chit { transform-style: preserve-3d; transition: transform 0.8s; }
         .chit.is-flipped { transform: rotateY(180deg); }
         .chit-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
-        .confetti { position: absolute; animation-timing-function: linear; }
+        .confetti { position: absolute; animation-timing-function: linear; user-select: none; }
     </style>
 </head>
 <body>
@@ -45,11 +41,11 @@
     <script type="text/babel" data-type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, arrayUnion, deleteField, collection, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const { useState, useEffect, useCallback, useRef } = React;
 
-        // --- Helper Components & Hooks ---
+        // --- Sound Manager ---
         const playSound = (() => {
             let sounds;
             return (sound, note = 'C4', duration = '8n') => {
@@ -60,14 +56,22 @@
                         win: new Tone.Synth({ oscillator: { type: 'triangle8' } }).toDestination(),
                         lose: new Tone.Synth({ oscillator: { type: 'sawtooth' } }).toDestination(),
                         message: new Tone.MembraneSynth().toDestination(),
+                        ptt_on: new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.01, release: 0.1 } }).toDestination(),
+                        ptt_off: new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.01, release: 0.1 } }).toDestination(),
                     };
                 }
                 if (Tone.context.state === 'running') sounds[sound].triggerAttackRelease(note, duration);
             };
         })();
 
-        const Confetti = ({ show }) => {
-            if (!show) return null;
+        // --- UI Components ---
+        const Confetti = ({ type }) => {
+            if (!type) return null;
+            let symbols = [];
+            if (type === 'both_win') symbols = ['🎉', '🎊', '✨', '🏆'];
+            if (type === 'one_win') symbols = ['🎆', '🎇', '✨'];
+            if (type === 'lose') symbols = ['😢', '👎', '🎺'];
+            
             const confettiPieces = Array.from({ length: 50 }, (_, i) => {
                 const style = {
                     left: `${Math.random() * 100}%`,
@@ -75,9 +79,8 @@
                     fontSize: `${1 + Math.random() * 1.5}rem`,
                     animation: `fall ${2 + Math.random() * 2}s linear ${Math.random() * 2}s forwards`
                 };
-                return <div key={i} className="confetti" style={style}>{['🎉', '🎊', '✨', '🏆'][i % 4]}</div>;
+                return <div key={i} className="confetti" style={style}>{symbols[i % symbols.length]}</div>;
             });
-
             return <div className="absolute inset-0 pointer-events-none">{confettiPieces}</div>;
         };
         const style = document.createElement('style');
@@ -91,56 +94,39 @@
             const [userId, setUserId] = useState(null);
             const [username, setUsername] = useState('');
             const [roomCode, setRoomCode] = useState('');
-            const [isMuted, setIsMuted] = useState(false);
             const [isDarkMode, setIsDarkMode] = useState(true);
-            
-            // WebRTC refs
-            const localStreamRef = useRef();
-            const peerConnectionsRef = useRef(new Map());
             
             const dbRef = useRef();
             const authRef = useRef();
-
+            let gameUnsubscribe = useRef(null);
+            
             const appId = 'donga-police-game';
             const getGameRef = (code) => doc(dbRef.current, `artifacts/${appId}/public/data/games`, code);
             
             useEffect(() => {
-                const initialize = async () => {
-                    const firebaseConfig = {
-                        apiKey: "AIzaSyCp8UFvV6eOVACbaLq7ylOjEZOBitUMkfc",
-                        authDomain: "dongapolice-24f1c.firebaseapp.com",
-                        projectId: "dongapolice-24f1c",
-                        storageBucket: "dongapolice-24f1c.appspot.com",
-                        messagingSenderId: "797826379293",
-                        appId: "1:797826379293:web:92a7231a8891be6527e0f4"
-                    };
-                    const app = initializeApp(firebaseConfig);
-                    dbRef.current = getFirestore(app);
-                    authRef.current = getAuth(app);
-                    await signInAnonymously(authRef.current);
-                    onAuthStateChanged(authRef.current, user => {
-                        if (user) setUserId(user.uid);
-                    });
-                };
-                initialize();
+                const firebaseConfig = { apiKey: "AIzaSyCp8UFvV6eOVACbaLq7ylOjEZOBitUMkfc", authDomain: "dongapolice-24f1c.firebaseapp.com", projectId: "dongapolice-24f1c", storageBucket: "dongapolice-24f1c.appspot.com", messagingSenderId: "797826379293", appId: "1:797826379293:web:92a7231a8891be6527e0f4" };
+                const app = initializeApp(firebaseConfig);
+                dbRef.current = getFirestore(app);
+                authRef.current = getAuth(app);
+                signInAnonymously(authRef.current).then(() => {
+                    onAuthStateChanged(authRef.current, user => { if (user) setUserId(user.uid); });
+                });
                 document.documentElement.classList.toggle('dark', isDarkMode);
             }, []);
 
-            useEffect(() => {
-                document.documentElement.classList.toggle('dark', isDarkMode);
-            }, [isDarkMode]);
+            useEffect(() => { document.documentElement.classList.toggle('dark', isDarkMode); }, [isDarkMode]);
 
             const subscribeToGame = useCallback((code) => {
+                if (gameUnsubscribe.current) gameUnsubscribe.current();
                 const gameRef = getGameRef(code);
-                return onSnapshot(gameRef, (doc) => {
+                gameUnsubscribe.current = onSnapshot(gameRef, (doc) => {
                     if (doc.exists()) {
                         const data = doc.data();
                         setGameData(data);
                         setGameState(data.gameState);
                     } else {
                         alert("Game room closed.");
-                        setGameState('home');
-                        setGameData(null);
+                        setGameState('home'); setGameData(null);
                     }
                 });
             }, []);
@@ -148,67 +134,63 @@
             const createRoom = async () => {
                 if (!username.trim()) { alert("Please enter your name!"); return; }
                 const newRoomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+                setRoomCode(newRoomCode);
                 const gameRef = getGameRef(newRoomCode);
                 await setDoc(gameRef, {
                     hostId: userId,
-                    players: { [userId]: { name: username, score: 0 } },
-                    chat: [],
-                    gameState: 'lobby',
-                    roomCode: newRoomCode,
+                    players: { [userId]: { name: username, score: 0, isSpeaking: false } },
+                    chat: [], gameState: 'lobby', roomCode: newRoomCode,
                 });
-                const unsubscribe = subscribeToGame(newRoomCode);
-                return () => unsubscribe();
+                subscribeToGame(newRoomCode);
             };
 
-            const joinRoom = async () => {
+            const joinRoom = async (code) => {
                 if (!username.trim()) { alert("Please enter your name!"); return; }
-                if (!roomCode.trim()) { alert("Please enter a room code."); return; }
-                const gameRef = getGameRef(roomCode);
+                const gameRef = getGameRef(code);
                 const gameSnap = await getDoc(gameRef);
                 if (!gameSnap.exists()) { alert("Room not found!"); return; }
-                await updateDoc(gameRef, { [`players.${userId}`]: { name: username, score: 0 } });
-                const unsubscribe = subscribeToGame(roomCode);
-                return () => unsubscribe();
+                await updateDoc(gameRef, { [`players.${userId}`]: { name: username, score: 0, isSpeaking: false } });
+                subscribeToGame(code);
             };
             
+            const props = { gameData, userId, getGameRef };
+
             const renderContent = () => {
                 switch (gameState) {
-                    case 'lobby': return <LobbyScreen gameData={gameData} userId={userId} getGameRef={getGameRef} />;
-                    case 'reveal': return <RevealScreen gameData={gameData} userId={userId} getGameRef={getGameRef} />;
-                    case 'guess': return <GuessScreen gameData={gameData} userId={userId} getGameRef={getGameRef} />;
-                    case 'result': return <ResultScreen gameData={gameData} userId={userId} getGameRef={getGameRef} />;
-                    default: return <HomeScreen setUsername={setUsername} setRoomCode={setRoomCode} createRoom={createRoom} joinRoom={joinRoom} />;
+                    case 'lobby': return <LobbyScreen {...props} />;
+                    case 'reveal': return <RevealScreen {...props} />;
+                    case 'police_guess':
+                    case 'raja_guess': return <GuessScreen {...props} />;
+                    case 'result': return <ResultScreen {...props} />;
+                    default: return <HomeScreen setUsername={setUsername} createRoom={createRoom} joinRoom={joinRoom} />;
                 }
             };
 
             return (
                 <div className="w-screen h-screen flex justify-center items-center">
-                    <div id="dark-mode-toggle" onClick={() => setIsDarkMode(!isDarkMode)}>{isDarkMode ? '☀️' : '🌙'}</div>
+                    <div className="absolute top-4 right-4 text-2xl cursor-pointer" onClick={() => setIsDarkMode(!isDarkMode)}>{isDarkMode ? '☀️' : '🌙'}</div>
                     {renderContent()}
-                    {gameState !== 'home' && <Chat gameData={gameData} username={username} getGameRef={getGameRef} />}
+                    {gameData && gameState !== 'home' && <Chat {...props} username={username} />}
                 </div>
             );
         }
 
-        const HomeScreen = ({ setUsername, setRoomCode, createRoom, joinRoom }) => {
-            const handleAction = async (action) => {
-                await Tone.start();
-                playSound('click');
-                action();
-            }
+        const HomeScreen = ({ setUsername, createRoom, joinRoom }) => {
+            const [roomCodeInput, setRoomCodeInput] = useState('');
+            const handleAction = async (action, arg) => { await Tone.start(); playSound('click'); action(arg); }
             return (
                  <div className="w-full max-w-md bg-[var(--surface-main)] p-8 rounded-2xl shadow-xl space-y-6">
                     <h1 className="text-4xl font-bold text-[var(--primary)]">Donga Police</h1>
-                    <p className="text-xl font-semibold -mt-4">Raja Rani Edition</p>
+                    <p className="text-xl font-semibold -mt-4">Royal Chits Edition</p>
                     <input onChange={e => setUsername(e.target.value)} type="text" className="input-field text-center" placeholder="Enter Your Name" />
                     <div className="space-y-3">
-                        <button onClick={() => handleAction(createRoom)} className="btn btn-primary w-full">Create Room 👑</button>
+                        <button onClick={() => handleAction(createRoom)} className="btn bg-blue-600 text-white w-full">Create Room 👑</button>
                         <div className="flex items-center gap-3">
-                            <input onChange={e => setRoomCode(e.target.value.toUpperCase())} type="text" className="input-field uppercase" placeholder="Room Code" />
-                            <button onClick={() => handleAction(joinRoom)} className="btn btn-secondary">Join</button>
+                            <input onChange={e => setRoomCodeInput(e.target.value.toUpperCase())} type="text" className="input-field uppercase" placeholder="Room Code" />
+                            <button onClick={() => handleAction(joinRoom, roomCodeInput)} className="btn bg-gray-600 text-white">Join</button>
                         </div>
                     </div>
-                    <p className="text-xs text-center text-gray-500 pt-4">A game by Krishnakanth</p>
+                     <p className="text-xs text-center text-gray-500 pt-4">A game by Krishnakanth</p>
                 </div>
             );
         }
@@ -219,15 +201,21 @@
 
             const startGame = async () => {
                 playSound('click');
-                let { players } = gameData;
+                const { players, roomCode } = gameData;
                 const playerIds = Object.keys(players);
-                let baseRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani'];
-                while (baseRoles.length < playerIds.length) baseRoles.push('🧍‍♂️ Public');
-                const shuffledRoles = baseRoles.sort(() => Math.random() - 0.5);
+                let baseRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani', '🧠 Mantri', '🤓 Batulu'];
+                let assignedRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani'];
+                let extraRoles = ['🧠 Mantri', '🤓 Batulu'];
+                let i = 0;
+                while (assignedRoles.length < playerIds.length) {
+                    assignedRoles.push(extraRoles[i % extraRoles.length]);
+                    i++;
+                }
+                const shuffledRoles = assignedRoles.sort(() => Math.random() - 0.5);
                 const roles = {};
-                playerIds.forEach((id, i) => roles[id] = shuffledRoles[i]);
-                Object.keys(players).forEach(uid => players[uid].revealed = false);
-                await updateDoc(getGameRef(gameData.roomCode), { gameState: 'reveal', roles, players });
+                playerIds.forEach((id, idx) => roles[id] = shuffledRoles[idx]);
+                Object.keys(players).forEach(uid => { players[uid].revealed = false });
+                await updateDoc(getGameRef(roomCode), { gameState: 'reveal', roles, players });
             };
 
             return (
@@ -235,9 +223,9 @@
                     <h2 className="text-3xl font-bold mb-2">Lobby</h2>
                     <p>Room Code: <strong className="text-2xl text-[var(--primary)] tracking-widest">{gameData.roomCode}</strong></p>
                     <div className="space-y-2 my-6 min-h-[150px] bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
-                        {Object.values(gameData.players).map(p => <div key={p.name} className="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg font-semibold">{p.name}</div>)}
+                        {Object.values(gameData.players).map(p => <div key={p.name} className="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg font-semibold flex justify-between items-center"><span>{p.name}</span> <span className={`text-2xl transition-opacity duration-300 ${p.isSpeaking ? 'opacity-100' : 'opacity-25'}`}>🎙️</span></div>)}
                     </div>
-                    {isHost && <button onClick={startGame} disabled={!canStart} className="btn btn-primary w-full text-xl">Start Game 🔥</button>}
+                    {isHost && <button onClick={startGame} disabled={!canStart} className="btn bg-blue-600 text-white w-full text-xl">Start Game 🔥</button>}
                     {!isHost && <p>Waiting for host to start...</p>}
                     {!canStart && <p className="text-sm text-gray-500 mt-2">Need at least 4 players to start.</p>}
                 </div>
@@ -255,6 +243,15 @@
                 playSound('flip');
                 await updateDoc(getGameRef(gameData.roomCode), { [`players.${userId}.revealed`]: true });
             };
+            
+            useEffect(() => {
+                const allRevealed = Object.values(gameData.players).every(p => p.revealed);
+                if (allRevealed) {
+                    setTimeout(() => {
+                         updateDoc(getGameRef(gameData.roomCode), { gameState: 'police_guess' });
+                    }, 1000);
+                }
+            }, [gameData.players]);
 
             return (
                 <div className="flex flex-col items-center">
@@ -266,104 +263,114 @@
                             <div className="chit-face chit-back flex flex-col justify-center items-center"><div className="text-7xl">{emoji}</div><div className="text-3xl font-bold mt-2">{name}</div></div>
                         </div>
                     </div>
-                    {myPlayer.revealed && <p className="text-lg mt-8 opacity-100 transition-opacity">Waiting for others to see their roles...</p>}
+                    {myPlayer.revealed && <p className="text-lg mt-8 opacity-100 transition-opacity">Waiting for others...</p>}
                 </div>
             );
         };
-
+        
         const GuessScreen = ({ gameData, userId, getGameRef }) => {
-            const policeId = Object.keys(gameData.roles).find(id => gameData.roles[id] === '👮 Police');
-            const isPolice = userId === policeId;
+            const { gameState, roles, players } = gameData;
+            const policeId = Object.keys(roles).find(id => roles[id] === '👮 Police');
+            const rajaId = Object.keys(roles).find(id => roles[id] === '👑 Raja');
 
-            const makeGuess = async (guessedId) => {
+            const isMyTurn = (gameState === 'police_guess' && userId === policeId) || (gameState === 'raja_guess' && userId === rajaId);
+            const currentGuesser = gameState === 'police_guess' ? players[policeId] : players[rajaId];
+            const prompt = gameState === 'police_guess' ? 'find the Donga 🕵️‍♂️' : 'find the Rani 👸';
+
+            const handleGuess = async (guessedId) => {
                 playSound('click');
-                const { roles, players } = gameData;
-                const dongaId = Object.keys(roles).find(id => roles[id] === '🕵️‍♂️ Donga');
-                const policeWon = guessedId === dongaId;
+                const nextState = gameState === 'police_guess' ? 'raja_guess' : 'result';
+                const guessField = gameState === 'police_guess' ? 'policeGuess' : 'rajaGuess';
+                
+                if (nextState === 'result') {
+                    // This is the final guess, calculate results
+                    const dongaId = Object.keys(roles).find(id => roles[id] === '🕵️‍♂️ Donga');
+                    const raniId = Object.keys(roles).find(id => roles[id] === '👸 Rani');
+                    
+                    const policeGuessedCorrectly = gameData.policeGuess === dongaId;
+                    const rajaGuessedCorrectly = guessedId === raniId;
 
-                const pointsMap = { '👑 Raja': 1000, '👸 Rani': 800, '👮 Police': 500, '🕵️‍♂️ Donga': 0, '🧍‍♂️ Public': 100 };
-                const updatedPlayers = { ...players };
+                    const pointsMap = { '👑 Raja': 1000, '👸 Rani': 800, '👮 Police': 500, '🧠 Mantri': 600, '🤓 Batulu': 300 };
+                    const updatedPlayers = { ...players };
 
-                if (policeWon) {
-                    playSound('win');
+                    // Award points based on correct guesses
+                    if (policeGuessedCorrectly) updatedPlayers[policeId].score += pointsMap['👮 Police'];
+                    if (rajaGuessedCorrectly) updatedPlayers[rajaId].score += pointsMap['👑 Raja'];
+                    
+                    // Award points to others
                     Object.keys(roles).forEach(uid => {
-                        if (roles[uid] !== '🕵️‍♂️ Donga') updatedPlayers[uid].score += pointsMap[roles[uid]] || 0;
+                        if (['👸 Rani', '🧠 Mantri', '🤓 Batulu'].includes(roles[uid])) {
+                            updatedPlayers[uid].score += pointsMap[roles[uid]];
+                        }
                     });
+
+                    let winType, dialogue;
+                    if(policeGuessedCorrectly && rajaGuessedCorrectly) { winType = 'both_win'; dialogue = "Perfect teamwork! 👑❤️🚨"; playSound('win', 'G5'); }
+                    else if(policeGuessedCorrectly || rajaGuessedCorrectly) { winType = 'one_win'; dialogue = "One mystery solved! 😉"; playSound('win', 'C5'); }
+                    else { winType = 'lose'; dialogue = "Total failure! 😢 Both guesses wrong!"; playSound('lose'); }
+                    
+                    await updateDoc(getGameRef(gameData.roomCode), { gameState: 'result', players: updatedPlayers, result: { winType, dialogue, policeGuess: gameData.policeGuess, rajaGuess: guessedId } });
+
                 } else {
-                    playSound('lose');
-                    Object.keys(roles).forEach(uid => {
-                        if (uid !== policeId && roles[uid] !== '🕵️‍♂️ Donga') updatedPlayers[uid].score += pointsMap[roles[uid]] || 0;
-                    });
+                     await updateDoc(getGameRef(gameData.roomCode), { gameState: nextState, [guessField]: guessedId });
                 }
-                
-                const result = {
-                    winner: policeWon ? "Police Wins! 🎉" : "Donga Wins! �",
-                    dialogue: policeWon ? "Donga dorikesadu ra babu! 😆" : "Mee guess wrong! 😂 Donga gelichadu!",
-                };
-                
-                await updateDoc(getGameRef(gameData.roomCode), { gameState: 'result', result, players: updatedPlayers });
             };
-
+            
             return (
-                 <div className="text-center w-full max-w-md">
-                    <h2 className="text-3xl font-bold">{isPolice ? "Your turn to guess!" : `Waiting for ${gameData.players[policeId].name} (Police)...`}</h2>
-                    <p className="text-lg italic bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 p-3 rounded-lg my-4">Nuve donga ra! Naku telusu 🤨</p>
+                <div className="text-center w-full max-w-lg">
+                    <h2 className="text-3xl font-bold">{isMyTurn ? "Your turn!" : `Waiting for ${currentGuesser.name}...`}</h2>
+                    <p className="text-xl my-4">They must {prompt}</p>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {isPolice && Object.entries(gameData.players).map(([uid, player]) => {
-                            if (uid !== policeId) return <button key={uid} onClick={() => makeGuess(uid)} className="btn btn-secondary">{player.name}</button>;
+                        {isMyTurn && Object.entries(players).map(([uid, player]) => {
+                            if (uid !== userId) return <button key={uid} onClick={() => handleGuess(uid)} className="btn bg-gray-600 text-white">{player.name}</button>;
                             return null;
                         })}
                     </div>
                 </div>
             );
         };
-        
-        const ResultScreen = ({ gameData, userId, getGameRef }) => {
-            const isHost = gameData.hostId === userId;
-            const { winner, dialogue } = gameData.result;
 
+        const ResultScreen = ({ gameData, userId, getGameRef }) => {
+            const { hostId, roles, players, result } = gameData;
+            const isHost = hostId === userId;
+            
             const playAgain = async () => {
                 playSound('click');
-                await startGameFlow();
+                const playerIds = Object.keys(players);
+                let baseRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani', '🧠 Mantri', '🤓 Batulu'];
+                let assignedRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani'];
+                let extraRoles = ['🧠 Mantri', '🤓 Batulu'];
+                let i=0;
+                while(assignedRoles.length < playerIds.length) { assignedRoles.push(extraRoles[i++ % extraRoles.length]); }
+                const shuffledRoles = assignedRoles.sort(() => Math.random() - 0.5);
+                const newRoles = {};
+                playerIds.forEach((id, idx) => newRoles[id] = shuffledRoles[idx]);
+                const resetPlayers = {...players};
+                Object.keys(resetPlayers).forEach(uid => resetPlayers[uid].revealed = false);
+                await updateDoc(getGameRef(gameData.roomCode), { gameState: 'reveal', roles: newRoles, players: resetPlayers, result: null, policeGuess: null, rajaGuess: null });
             };
             
-            const startGameFlow = async () => {
-                let { players } = gameData;
-                const playerIds = Object.keys(players);
-                
-                let baseRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani'];
-                while (baseRoles.length < playerIds.length) baseRoles.push('🧍‍♂️ Public');
-                
-                const shuffledRoles = baseRoles.sort(() => Math.random() - 0.5);
-                const roles = {};
-                playerIds.forEach((id, i) => roles[id] = shuffledRoles[i]);
-                Object.keys(players).forEach(uid => players[uid].revealed = false);
-
-                await updateDoc(getGameRef(gameData.roomCode), { gameState: 'reveal', roles, players, result: null });
-            };
-
             return (
-                <div className="w-full max-w-lg bg-[var(--surface-main)] p-8 rounded-2xl shadow-xl text-center relative overflow-hidden">
-                    <Confetti show={winner.includes('Wins')} />
-                    <h2 className="text-4xl font-bold mb-4">{winner}</h2>
-                    <p className="text-xl mb-6 font-semibold">{dialogue}</p>
-                    <div className="grid grid-cols-2 gap-4 my-4">
+                <div className="w-full max-w-2xl bg-[var(--surface-main)] p-8 rounded-2xl shadow-xl text-center relative overflow-hidden">
+                    <Confetti type={result.winType} />
+                    <h2 className="text-4xl font-bold mb-4">{result.dialogue}</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-4">
                         <div className="space-y-2 text-left bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
-                            <h3 className="font-bold mb-2">Roles</h3>
-                            {Object.keys(gameData.roles).map(uid => <p key={uid}>{gameData.players[uid].name}: {gameData.roles[uid]}</p>)}
+                            <h3 className="font-bold mb-2 text-lg">Final Roles</h3>
+                            {Object.keys(roles).map(uid => <p key={uid}>{players[uid].name}: {roles[uid]}</p>)}
                         </div>
                         <div className="space-y-2 text-left bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
-                            <h3 className="font-bold mb-2">Scoreboard 🏆</h3>
-                            {Object.values(gameData.players).sort((a,b) => b.score - a.score).map(p => <p key={p.name}>{p.name}: {p.score} points</p>)}
+                            <h3 className="font-bold mb-2 text-lg">Scoreboard 🏆</h3>
+                            {Object.values(players).sort((a,b) => b.score - a.score).map(p => <p key={p.name}>{p.name}: {p.score} pts</p>)}
                         </div>
                     </div>
-                    {isHost && <button onClick={playAgain} className="btn btn-primary w-full mt-4">Play Next Round 🔁</button>}
+                    {isHost && <button onClick={playAgain} className="btn bg-blue-600 text-white w-full mt-4">Play Next Round 🔁</button>}
                     {!isHost && <p>Waiting for host to start a new game...</p>}
                 </div>
             );
         };
 
-        const Chat = ({ gameData, username, getGameRef }) => {
+        const Chat = ({ gameData, username, getGameRef, userId }) => {
             const [chatInput, setChatInput] = useState('');
             const [isOpen, setIsOpen] = useState(false);
             const messagesEndRef = useRef(null);
@@ -371,6 +378,13 @@
             useEffect(() => {
                 messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
             }, [gameData.chat]);
+
+            const handlePtt = async (isSpeaking) => {
+                playSound(isSpeaking ? 'ptt_on' : 'ptt_off');
+                // This is a placeholder for actual WebRTC logic. 
+                // In a real scenario, this would mute/unmute the local audio track.
+                await updateDoc(getGameRef(gameData.roomCode), { [`players.${userId}.isSpeaking`]: isSpeaking });
+            };
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
@@ -381,18 +395,27 @@
             };
 
             return (
-                 <div id="chat-container">
-                    <div id="chat-window" style={{ display: isOpen ? 'flex' : 'none' }}>
-                        <div id="chat-messages">
-                            {gameData.chat?.map((msg, i) => <div key={i} className="message"><strong>{msg.name}:</strong> {msg.text}</div>)}
-                            <div ref={messagesEndRef} />
+                 <div className="fixed bottom-4 right-4 z-50">
+                    <div className="flex flex-col items-end gap-3">
+                        <div id="chat-window" className="w-80 h-96 bg-[var(--surface-main)] rounded-xl shadow-2xl flex-col" style={{ display: isOpen ? 'flex' : 'none' }}>
+                            <div id="chat-messages" className="flex-grow p-3 overflow-y-auto text-left">
+                                {gameData.chat?.map((msg, i) => <div key={i} className="mb-2"><strong>{msg.name}:</strong> {msg.text}</div>)}
+                                <div ref={messagesEndRef} />
+                            </div>
+                            <form onSubmit={handleSubmit} className="flex p-2 border-t border-gray-300 dark:border-gray-600">
+                                <input value={chatInput} onChange={e => setChatInput(e.target.value)} className="input-field !rounded-r-none" placeholder="Say something..." autoComplete="off" />
+                                <button type="submit" className="btn bg-blue-600 text-white !rounded-l-none">Send</button>
+                            </form>
                         </div>
-                        <form onSubmit={handleSubmit} id="chat-form" className="flex p-2 border-t border-gray-300 dark:border-gray-600">
-                            <input value={chatInput} onChange={e => setChatInput(e.target.value)} id="chat-input" className="input-field !rounded-r-none" placeholder="Say something..." autoComplete="off" />
-                            <button type="submit" className="btn btn-primary !rounded-l-none">Send</button>
-                        </form>
+                        <div className="flex items-center gap-3">
+                           <button 
+                             className="w-16 h-16 rounded-full text-3xl flex items-center justify-center bg-green-500 text-white active:bg-green-700"
+                             onMouseDown={() => handlePtt(true)} onMouseUp={() => handlePtt(false)}
+                             onTouchStart={() => handlePtt(true)} onTouchEnd={() => handlePtt(false)}
+                           >🎙️</button>
+                           <div id="chat-toggle" className="w-16 h-16 rounded-full text-3xl flex items-center justify-center bg-blue-600 text-white cursor-pointer" onClick={() => setIsOpen(!isOpen)}>{isOpen ? '🔽' : '🗨️'}</div>
+                        </div>
                     </div>
-                    <div id="chat-toggle" onClick={() => setIsOpen(!isOpen)}>{isOpen ? '🔽' : '🗨️'}</div>
                 </div>
             )
         };
@@ -403,4 +426,3 @@
     </script>
 </body>
 </html>
-�
