@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donga Police Raju Mantri - Online Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            touch-action: manipulation; /* Prevents double-tap to zoom on mobile */
+        }
+        .card {
+            transition: transform 0.5s, box-shadow 0.3s;
+            transform-style: preserve-3d;
+        }
+        .card.is-flipped {
+            transform: rotateY(180deg);
+        }
+        .card-face {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        .card-back {
+            transform: rotateY(180deg);
+        }
+        .btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen">
+    <div id="app-container" class="w-full max-w-md mx-auto p-4">
+
+        <!-- Home Screen -->
+        <div id="home-screen" class="text-center space-y-6 bg-white p-8 rounded-2xl shadow-lg">
+            <h1 class="text-4xl font-bold text-teal-600">Donga Police</h1>
+            <p class="text-gray-500">The classic 4-player chit game, now online!</p>
+            <div>
+                <button id="create-game-btn" class="w-full bg-teal-500 text-white font-bold py-3 px-6 rounded-lg text-lg btn">Create New Game</button>
+            </div>
+            <div class="flex items-center space-x-2">
+                <hr class="w-full border-gray-300">
+                <span class="text-gray-400 font-semibold">OR</span>
+                <hr class="w-full border-gray-300">
+            </div>
+            <div class="space-y-3">
+                <input type="text" id="game-id-input" placeholder="Enter Game ID" class="w-full text-center p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none uppercase tracking-widest font-semibold">
+                <button id="join-game-btn" class="w-full bg-gray-700 text-white font-bold py-3 px-6 rounded-lg text-lg btn">Join Game</button>
+            </div>
+        </div>
+
+        <!-- Lobby Screen -->
+        <div id="lobby-screen" class="hidden text-center space-y-6 bg-white p-8 rounded-2xl shadow-lg">
+            <h2 class="text-2xl font-bold">Lobby</h2>
+            <p class="text-gray-500">Share this Game ID with your friends:</p>
+            <div class="bg-teal-50 p-4 rounded-lg flex items-center justify-center space-x-3">
+                <span id="lobby-game-id" class="text-3xl font-bold text-teal-600 tracking-widest"></span>
+                <button id="copy-id-btn" class="p-2 bg-gray-200 rounded-md hover:bg-gray-300">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-clipboard" viewBox="0 0 16 16">
+                        <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                        <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="player-list" class="space-y-2">
+                <!-- Player items will be injected here -->
+            </div>
+            <p id="lobby-status" class="text-gray-500 animate-pulse">Waiting for 4 players to join...</p>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="hidden w-full max-w-md mx-auto">
+            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="text-sm">Room: <span id="game-room-id" class="font-bold text-teal-600"></span></div>
+                    <div class="text-sm">Round: <span id="game-round" class="font-bold"></span></div>
+                </div>
+                
+                <div id="status-display" class="text-center bg-gray-100 p-4 rounded-lg mb-4 h-16 flex items-center justify-center">
+                    <p id="status-text" class="text-lg font-semibold"></p>
+                </div>
+
+                <div id="players-container" class="grid grid-cols-2 gap-4 mb-6">
+                    <!-- Player cards will be injected here -->
+                </div>
+
+                <div id="my-chit-container" class="text-center">
+                    <p class="mb-2 font-semibold">Your Chit</p>
+                    <div id="my-chit-card" class="card w-48 h-24 mx-auto cursor-default">
+                        <div class="card-face w-full h-full p-4 rounded-lg bg-teal-500 text-white flex items-center justify-center shadow">
+                            <p class="font-bold text-xl">Your Role</p>
+                        </div>
+                        <div id="my-chit-back" class="card-back w-full h-full p-4 rounded-lg flex flex-col items-center justify-center shadow-lg">
+                            <!-- Role will be shown here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="action-container" class="mt-6 text-center">
+                   <button id="play-again-btn" class="hidden w-full bg-teal-500 text-white font-bold py-3 px-6 rounded-lg text-lg btn">Play Again</button>
+                </div>
+            </div>
+             <div id="scores-container" class="mt-4 bg-white p-4 rounded-2xl shadow-lg">
+                <h3 class="font-bold text-center mb-2">Scoreboard</h3>
+                <div id="scores-list" class="space-y-1"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- GLOBAL VARIABLES ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "YOUR_API_KEY", authDomain: "...", projectId: "..." };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'donga-police-game';
+        
+        let db, auth;
+        let userId;
+        let currentGameId = null;
+        let gameUnsubscribe = null;
+
+        // HTML Elements
+        const screens = {
+            home: document.getElementById('home-screen'),
+            lobby: document.getElementById('lobby-screen'),
+            game: document.getElementById('game-screen'),
+        };
+        const createGameBtn = document.getElementById('create-game-btn');
+        const joinGameBtn = document.getElementById('join-game-btn');
+        const gameIdInput = document.getElementById('game-id-input');
+        const copyIdBtn = document.getElementById('copy-id-btn');
+        const playAgainBtn = document.getElementById('play-again-btn');
+
+        // --- INITIALIZATION ---
+        const initializeFirebase = async () => {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        console.log("Authenticated with User ID:", userId);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                });
+
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                alert("Could not connect to the game server. Please refresh.");
+            }
+        };
+        
+        // --- UI & NAVIGATION ---
+        const showScreen = (screenName) => {
+            Object.values(screens).forEach(screen => screen.classList.add('hidden'));
+            if(screens[screenName]) {
+                screens[screenName].classList.remove('hidden');
+            }
+        };
+
+        const generateGameId = () => {
+            return Math.random().toString(36).substring(2, 6).toUpperCase();
+        };
+
+        // --- GAME LOGIC ---
+
+        const createGame = async () => {
+            if (!userId) { alert("Not authenticated. Please wait."); return; }
+            
+            currentGameId = generateGameId();
+            const gameRef = doc(db, `artifacts/${appId}/public/data/games`, currentGameId);
+            
+            const newPlayer = { name: `Player ${Math.floor(Math.random() * 100)}`, score: 0 };
+
+            const newGame = {
+                gameId: currentGameId,
+                players: { [userId]: newPlayer },
+                playerOrder: [userId],
+                gameState: 'lobby', // lobby, assigning, waiting_for_guess, reveal
+                round: 0,
+                createdAt: new Date(),
+            };
+
+            await setDoc(gameRef, newGame);
+            subscribeToGame(currentGameId);
+            showScreen('lobby');
+        };
+
+        const joinGame = async () => {
+            if (!userId) { alert("Not authenticated. Please wait."); return; }
+            
+            const gameId = gameIdInput.value.trim().toUpperCase();
+            if (!gameId) { alert("Please enter a Game ID."); return; }
+
+            const gameRef = doc(db, `artifacts/${appId}/public/data/games`, gameId);
+            const gameSnap = await getDoc(gameRef);
+
+            if (!gameSnap.exists()) {
+                alert("Game not found. Please check the ID.");
+                return;
+            }
+
+            const gameData = gameSnap.data();
+            if (Object.keys(gameData.players).length >= 4 && !gameData.players[userId]) {
+                alert("This game room is full.");
+                return;
+            }
+            
+            if (!gameData.players[userId]) {
+                const newPlayer = { name: `Player ${Math.floor(Math.random() * 100)}`, score: 0 };
+                const newPlayers = { ...gameData.players, [userId]: newPlayer };
+                const newPlayerOrder = [...gameData.playerOrder, userId];
+                await updateDoc(gameRef, { players: newPlayers, playerOrder: newPlayerOrder });
+            }
+            
+            currentGameId = gameId;
+            subscribeToGame(gameId);
+            showScreen('lobby');
+        };
+
+        const subscribeToGame = (gameId) => {
+            if (gameUnsubscribe) {
+                gameUnsubscribe();
+            }
+            const gameRef = doc(db, `artifacts/${appId}/public/data/games`, gameId);
+            gameUnsubscribe = onSnapshot(gameRef, (doc) => {
+                if (doc.exists()) {
+                    const gameData = doc.data();
+                    updateUI(gameData);
+
+                    // Auto-start game when lobby is full
+                    if (gameData.gameState === 'lobby' && gameData.playerOrder.length === 4) {
+                         // Only the first player (host) should start the game
+                        if (gameData.playerOrder[0] === userId) {
+                            startGame(gameData);
+                        }
+                    }
+                } else {
+                    alert("Game has been deleted or does not exist.");
+                    resetGame();
+                }
+            });
+        };
+        
+        const startGame = async (gameData) => {
+            const roles = ['Raju', 'Mantri', 'Donga', 'Police'];
+            const shuffledRoles = roles.sort(() => Math.random() - 0.5);
+
+            const updatedPlayers = { ...gameData.players };
+            let policeId = null;
+            let dongaId = null;
+
+            gameData.playerOrder.forEach((pid, index) => {
+                updatedPlayers[pid].role = shuffledRoles[index];
+                if (shuffledRoles[index] === 'Police') policeId = pid;
+                if (shuffledRoles[index] === 'Donga') dongaId = pid;
+            });
+
+            await updateDoc(doc(db, `artifacts/${appId}/public/data/games`, currentGameId), {
+                players: updatedPlayers,
+                gameState: 'waiting_for_guess',
+                round: gameData.round + 1,
+                policeId: policeId,
+                dongaId: dongaId,
+                guessResult: null
+            });
+        };
+        
+        const makeGuess = async (guessedPlayerId) => {
+            const gameRef = doc(db, `artifacts/${appId}/public/data/games`, currentGameId);
+            const gameSnap = await getDoc(gameRef);
+            if (!gameSnap.exists()) return;
+            
+            const gameData = gameSnap.data();
+            const isCorrect = guessedPlayerId === gameData.dongaId;
+
+            // Calculate new scores
+            const updatedPlayers = { ...gameData.players };
+            const points = { 'Raju': 1000, 'Mantri': 800, 'Police': 500, 'Donga': 0 };
+            
+            if (isCorrect) {
+                updatedPlayers[gameData.policeId].score += points.Police;
+                updatedPlayers[gameData.dongaId].score += points.Donga;
+            } else {
+                updatedPlayers[gameData.policeId].score += 0;
+                updatedPlayers[gameData.dongaId].score += points.Raju; // Donga gets Raja's points
+            }
+            
+            // Raja and Mantri always get their points unless they are wrongly accused
+            gameData.playerOrder.forEach(pid => {
+                if (updatedPlayers[pid].role === 'Raju') {
+                     updatedPlayers[pid].score += points.Raju;
+                } else if(updatedPlayers[pid].role === 'Mantri') {
+                    updatedPlayers[pid].score += points.Mantri;
+                }
+            });
+
+
+            await updateDoc(gameRef, {
+                gameState: 'reveal',
+                guessResult: {
+                    guessedPlayerId: guessedPlayerId,
+                    isCorrect: isCorrect
+                },
+                players: updatedPlayers
+            });
+        };
+        
+        const playAgain = async () => {
+             const gameRef = doc(db, `artifacts/${appId}/public/data/games`, currentGameId);
+             const gameSnap = await getDoc(gameRef);
+             if (gameSnap.exists()) {
+                 startGame(gameSnap.data());
+             }
+        };
+
+        // --- UI UPDATES ---
+        const updateUI = (gameData) => {
+            // Update based on gameState
+            if (gameData.gameState === 'lobby') {
+                showScreen('lobby');
+                document.getElementById('lobby-game-id').textContent = gameData.gameId;
+                const playerList = document.getElementById('player-list');
+                playerList.innerHTML = '';
+                gameData.playerOrder.forEach((pid, index) => {
+                    const player = gameData.players[pid];
+                    playerList.innerHTML += `<div class="bg-gray-100 p-3 rounded-lg text-left flex items-center space-x-3">
+                        <span class="font-mono text-gray-400">${index+1}.</span>
+                        <span class="font-semibold">${player.name} ${pid === userId ? '(You)' : ''}</span>
+                    </div>`;
+                });
+                document.getElementById('lobby-status').textContent = gameData.playerOrder.length === 4 ? 'Starting game...' : `Waiting for ${4-gameData.playerOrder.length} more players...`;
+            } else {
+                showScreen('game');
+                renderGameScreen(gameData);
+            }
+        };
+
+        const renderGameScreen = (gameData) => {
+            const me = gameData.players[userId];
+            const isPolice = me.role === 'Police';
+            const { gameState, guessResult } = gameData;
+            
+            document.getElementById('game-room-id').textContent = gameData.gameId;
+            document.getElementById('game-round').textContent = gameData.round;
+            
+            // Render my chit
+            const myChitCard = document.getElementById('my-chit-card');
+            const myChitBack = document.getElementById('my-chit-back');
+            const roleEmojis = { 'Raju': '👑', 'Mantri': '👸', 'Donga': '👺', 'Police': '👮‍♂️' };
+            const roleColors = { 'Raju': 'bg-amber-400', 'Mantri': 'bg-fuchsia-400', 'Donga': 'bg-rose-500', 'Police': 'bg-sky-500' };
+
+            myChitBack.innerHTML = `<span class="text-4xl">${roleEmojis[me.role]}</span><p class="font-bold text-xl mt-1">${me.role}</p>`;
+            myChitBack.className = `card-back w-full h-full p-4 rounded-lg flex flex-col items-center justify-center shadow-lg text-white ${roleColors[me.role]}`;
+            myChitCard.classList.add('is-flipped');
+            
+            // Render player cards
+            const playersContainer = document.getElementById('players-container');
+            playersContainer.innerHTML = '';
+            gameData.playerOrder.filter(pid => pid !== userId).forEach(pid => {
+                const player = gameData.players[pid];
+                const canGuess = isPolice && gameState === 'waiting_for_guess';
+                const cardIsFlipped = gameState === 'reveal';
+
+                const playerCardHTML = `
+                    <div id="player-card-${pid}" class="card ${cardIsFlipped ? 'is-flipped' : ''} ${canGuess ? 'cursor-pointer' : 'cursor-default'}" ${canGuess ? `onclick="window.makeGuess('${pid}')"` : ''}>
+                        <div class="card-face w-full h-28 p-4 rounded-lg bg-white flex flex-col items-center justify-center shadow">
+                            <p class="font-bold text-lg">${player.name}</p>
+                            ${canGuess ? '<p class="text-sm text-teal-500 font-semibold mt-1">Guess?</p>' : ''}
+                        </div>
+                        <div class="card-back w-full h-28 p-4 rounded-lg flex flex-col items-center justify-center shadow-lg text-white ${roleColors[player.role]}">
+                             <span class="text-4xl">${roleEmojis[player.role]}</span>
+                             <p class="font-bold text-lg mt-1">${player.role}</p>
+                        </div>
+                    </div>
+                `;
+                playersContainer.innerHTML += playerCardHTML;
+            });
+            
+            // Update Status Text and Actions
+            const statusText = document.getElementById('status-text');
+            playAgainBtn.classList.add('hidden');
+
+            if (gameState === 'waiting_for_guess') {
+                statusText.textContent = isPolice ? 'Guess who is the Donga!' : `Waiting for Police (${gameData.players[gameData.policeId].name}) to guess...`;
+            } else if (gameState === 'reveal') {
+                if (guessResult.isCorrect) {
+                    statusText.innerHTML = `✅ Correct! <span class="font-normal">${gameData.players[gameData.policeId].name} caught the Donga!</span>`;
+                } else {
+                    statusText.innerHTML = `❌ Wrong Guess! <span class="font-normal">The Donga escaped!</span>`;
+                }
+                
+                // Show play again button for the host
+                if (gameData.playerOrder[0] === userId) {
+                    playAgainBtn.classList.remove('hidden');
+                }
+            }
+            
+            // Update scoreboard
+            const scoresList = document.getElementById('scores-list');
+            scoresList.innerHTML = '';
+            gameData.playerOrder.forEach(pid => {
+                const player = gameData.players[pid];
+                scoresList.innerHTML += `
+                    <div class="flex justify-between items-center text-sm p-2 rounded-md ${pid === userId ? 'bg-teal-50' : ''}">
+                        <span class="font-semibold">${player.name} ${pid === userId ? '(You)' : ''}</span>
+                        <span class="font-bold text-teal-600">${player.score} pts</span>
+                    </div>
+                `;
+            });
+        };
+        
+        const resetGame = () => {
+             if (gameUnsubscribe) gameUnsubscribe();
+             currentGameId = null;
+             gameUnsubscribe = null;
+             gameIdInput.value = '';
+             showScreen('home');
+        };
+
+
+        // --- EVENT LISTENERS ---
+        window.onload = initializeFirebase;
+        createGameBtn.addEventListener('click', createGame);
+        joinGameBtn.addEventListener('click', joinGame);
+        playAgainBtn.addEventListener('click', playAgain);
+        
+        copyIdBtn.addEventListener('click', () => {
+            const gameId = document.getElementById('lobby-game-id').textContent;
+            navigator.clipboard.writeText(gameId).then(() => {
+                copyIdBtn.innerHTML = 'Copied!';
+                setTimeout(() => {
+                     copyIdBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-clipboard" viewBox="0 0 16 16">
+                        <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+                        <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+                    </svg>`;
+                }, 1500);
+            });
+        });
+
+        // Expose function to global scope to be called from inline onclick
+        window.makeGuess = makeGuess;
+
+    </script>
+</body>
+</html>
