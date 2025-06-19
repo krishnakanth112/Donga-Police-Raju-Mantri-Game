@@ -159,8 +159,8 @@
 
         // --- INITIALIZATION ---
         const initializeFirebase = async () => {
-            // Basic check to see if config has been replaced
-            if (firebaseConfig.apiKey.startsWith("AIza") === false) { // A basic check for a real key
+            // Check if config has been replaced
+            if (firebaseConfig.apiKey.startsWith("AIza") === false) { 
                 authStatus.textContent = "Firebase is not configured.";
                 authStatus.classList.add('text-red-500');
                 return;
@@ -171,23 +171,36 @@
                 db = getFirestore(app);
                 auth = getAuth(app);
                 
-                onAuthStateChanged(auth, async (user) => {
+                onAuthStateChanged(auth, (user) => {
                     if (user) {
+                        // This block runs when sign-in is successful
                         userId = user.uid;
                         console.log("Authenticated with User ID:", userId);
-                        // Enable buttons and update status once authenticated
                         createGameBtn.disabled = false;
                         joinGameBtn.disabled = false;
-                        authStatus.textContent = "The classic 4-player chit game, now online!";
+                        authStatus.textContent = "Ready to play!";
+                        authStatus.classList.remove('text-red-500', 'text-gray-500');
+                        authStatus.classList.add('text-green-600', 'font-semibold');
                     } else {
-                        await signInAnonymously(auth);
+                        // This block runs if the user is not signed in
+                        console.log("No authenticated user.");
                     }
                 });
 
+                // Attempt to sign in anonymously
+                await signInAnonymously(auth);
+
             } catch (error) {
-                console.error("Firebase initialization failed:", error);
-                authStatus.textContent = "Error connecting to server.";
-                authStatus.classList.add('text-red-500');
+                console.error("Firebase connection failed:", error);
+                let errorMessage = "Error connecting to server.";
+                // Provide specific feedback for common configuration errors
+                if (error.code === 'auth/configuration-not-found') {
+                    errorMessage = "Error: Anonymous Auth is not enabled in your Firebase project.";
+                } else if (error.code) {
+                    errorMessage = `Error: ${error.code}`;
+                }
+                authStatus.textContent = errorMessage;
+                authStatus.classList.add('text-red-500', 'font-semibold');
             }
         };
         
