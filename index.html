@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <!-- PushSDK / PropellerAds verification tag -->
+    <meta name="pushsdk" content="e2e9d3f95a0e8c97c853cc9e29a2e5a2" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Donga Police: Royal Chits Game</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -57,6 +59,16 @@
         import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, arrayUnion, writeBatch, deleteField, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const { useState, useEffect, useCallback, useRef, createContext, useContext } = React;
+
+        // --- Ad Trigger Logic ---
+        const AD_URL = 'https://toopsoug.net/4/9468874';
+        const handleAdTrigger = () => {
+            const adShown = sessionStorage.getItem('dongaPoliceAdShown');
+            if (!adShown) {
+                window.open(AD_URL, '_blank', 'noopener,noreferrer');
+                sessionStorage.setItem('dongaPoliceAdShown', 'true');
+            }
+        };
 
         // --- Sound Manager ---
         const playSound = (() => {
@@ -626,6 +638,7 @@
 
             const isHost = hostId === userId;
             const playAgain = async () => {
+                handleAdTrigger(); // Call the ad trigger function
                 playSound('click');
                 const updates = {};
                 // Reset game state but keep players and their scores
