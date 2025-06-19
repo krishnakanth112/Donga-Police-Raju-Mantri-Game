@@ -2,167 +2,199 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Donga Police Raju Mantri - Online Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Donga Police - Online Multiplayer</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <style>
+        :root {
+            --bg-dark: #1a202c; --bg-light: #f7fafc;
+            --text-dark: #e2e8f0; --text-light: #2d3748;
+            --surface-dark: #2d3748; --surface-light: #ffffff;
+            --primary: #4299e1;
+        }
+        html.dark {
+            --bg-main: var(--bg-dark); --text-main: var(--text-dark); --surface-main: var(--surface-dark);
+        }
+        html:not(.dark) {
+            --bg-main: var(--bg-light); --text-main: var(--text-light); --surface-main: var(--surface-light);
+        }
         body {
-            font-family: 'Inter', sans-serif;
-            touch-action: manipulation;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-main); color: var(--text-main);
+            transition: background-color 0.3s, color 0.3s;
+            overflow: hidden; display: flex; justify-content: center; align-items: center; height: 100vh;
         }
-        .card {
-            transition: transform 0.6s, box-shadow 0.3s;
-            transform-style: preserve-3d;
-            perspective: 1000px;
+        .screen {
+            display: none; width: 100%; height: 100%; flex-direction: column; justify-content: center;
+            align-items: center; text-align: center; padding: 20px; box-sizing: border-box;
+            position: absolute; top: 0; left: 0; opacity: 0; transition: opacity 0.5s;
         }
-        .card.is-flipped {
-            transform: rotateY(180deg);
-        }
-        .card-face {
-            backface-visibility: hidden;
-            -webkit-backface-visibility: hidden;
-        }
-        .card-back {
-            transform: rotateY(180deg);
-        }
+        .screen.active { display: flex; opacity: 1; z-index: 10; }
         .btn {
-            transition: all 0.2s ease-in-out;
+            padding: 12px 28px; font-size: 1.1rem; font-weight: bold; border-radius: 12px;
+            cursor: pointer; transition: all 0.2s ease; border: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        .btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        .btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-secondary { background-color: #718096; color: white; }
+
+        .input-field {
+            background-color: var(--surface-main); color: var(--text-main);
+            border: 2px solid #a0aec0; border-radius: 8px;
+            padding: 10px; font-size: 1rem; width: 100%;
         }
-        .btn:disabled {
-            cursor: not-allowed;
-            opacity: 0.6;
+        .chit-scene { width: 200px; height: 280px; perspective: 1000px; cursor: pointer; }
+        .chit { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.8s; }
+        .chit.is-flipped { transform: rotateY(180deg); }
+        .chit-face {
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            border-radius: 16px; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
-        @keyframes emoji-float {
-            0% { transform: translateY(0) scale(0.5); opacity: 0; }
-            50% { transform: translateY(-40px) scale(1.2); opacity: 1; }
-            100% { transform: translateY(-80px) scale(1); opacity: 0; }
-        }
-        .emoji-reaction {
-            position: absolute;
-            font-size: 2.5rem;
-            animation: emoji-float 2s ease-out forwards;
-            pointer-events: none;
-        }
+        .chit-front { background: linear-gradient(135deg, #6b7280, #4a5568); color: white; }
+        .chit-back { background: linear-gradient(135deg, #fefcbf, #fce98a); color: #4a330e; transform: rotateY(180deg); }
+
+        #dark-mode-toggle { position: absolute; top: 20px; right: 20px; font-size: 1.5rem; cursor: pointer; z-index: 999; }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800 flex items-center justify-center min-h-screen">
-    <div id="app-container" class="w-full max-w-md mx-auto p-4">
+<body>
 
-        <!-- Home Screen -->
-        <div id="home-screen" class="space-y-6 bg-white p-8 rounded-2xl shadow-lg">
-            <div class="text-center">
-                <h1 class="text-4xl font-bold text-teal-600">Donga Police</h1>
-                <p id="auth-status" class="text-gray-500 mt-2">Connecting to server...</p>
-            </div>
-            <div class="space-y-4">
-                 <input type="text" id="name-input" placeholder="Enter Your Name" class="w-full text-center p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none font-semibold text-lg" maxlength="12">
-                 <button id="create-game-btn" class="w-full bg-teal-500 text-white font-bold py-3 px-6 rounded-lg text-lg btn" disabled>Create New Game</button>
-            </div>
-            <div class="flex items-center space-x-2">
-                <hr class="w-full border-gray-300">
-                <span class="text-gray-400 font-semibold">OR</span>
-                <hr class="w-full border-gray-300">
-            </div>
+    <div id="dark-mode-toggle">🌙</div>
+
+    <!-- Landing Screen -->
+    <div id="landing-screen" class="screen active">
+        <div class="w-full max-w-md bg-[var(--surface-main)] p-8 rounded-2xl shadow-lg space-y-6">
+            <h1 class="text-4xl font-bold text-[var(--primary)]">Donga Police Online</h1>
+            <input type="text" id="name-input" class="input-field text-center" placeholder="Enter Your Name">
             <div class="space-y-3">
-                <input type="text" id="game-id-input" placeholder="Enter Game ID" class="w-full text-center p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none uppercase tracking-widest font-semibold">
-                <button id="join-game-btn" class="w-full bg-gray-700 text-white font-bold py-3 px-6 rounded-lg text-lg btn" disabled>Join Game</button>
+                <button id="create-room-btn" class="btn btn-primary w-full">Create Room 🚪</button>
+                <div class="flex items-center gap-3">
+                    <input type="text" id="room-code-input" class="input-field uppercase" placeholder="Room Code">
+                    <button id="join-room-btn" class="btn btn-secondary">Join</button>
+                </div>
+            </div>
+            <p id="auth-status" class="text-xs text-gray-500 pt-4">Connecting...</p>
+        </div>
+    </div>
+
+    <!-- Lobby Screen -->
+    <div id="lobby-screen" class="screen">
+        <div class="w-full max-w-md bg-[var(--surface-main)] p-8 rounded-2xl shadow-lg">
+            <h2 class="text-2xl font-bold mb-2">Lobby</h2>
+            <div class="flex items-center justify-center gap-2 mb-4">
+                <p>Room Code: <strong id="lobby-room-code" class="text-2xl text-[var(--primary)] tracking-widest"></strong></p>
+                <button id="copy-code-btn" class="text-2xl">📋</button>
+            </div>
+            <div id="lobby-player-list" class="space-y-2 mb-6 min-h-[100px]"></div>
+            <button id="start-game-btn" class="btn btn-primary w-full text-xl hidden">Start Game 🔥</button>
+            <p id="waiting-for-host-msg">Waiting for host to start...</p>
+        </div>
+    </div>
+    
+    <!-- Role Reveal Screen -->
+    <div id="reveal-screen" class="screen">
+        <h2 class="text-3xl font-bold mb-2">Your Secret Role Is...</h2>
+        <p class="mb-6">Don't show anyone! 🤫</p>
+        <div class="chit-scene" id="chit-scene">
+            <div class="chit" id="chit">
+                <div class="chit-face chit-front"><div class="text-3xl">🧾</div><div class="font-bold text-xl mt-2">Click to Reveal</div></div>
+                <div class="chit-face chit-back"><div id="chit-role-emoji" class="text-7xl"></div><div id="chit-role-name" class="text-3xl font-bold mt-2"></div></div>
             </div>
         </div>
+        <p id="waiting-msg" class="text-lg mt-8 opacity-0 transition-opacity">Waiting for others to see their roles...</p>
+    </div>
 
-        <!-- Lobby Screen -->
-        <div id="lobby-screen" class="hidden text-center space-y-6 bg-white p-8 rounded-2xl shadow-lg">
-            <h2 class="text-2xl font-bold">Lobby</h2>
-            <p class="text-gray-500">Share this Game ID with your friends:</p>
-            <div class="bg-teal-50 p-4 rounded-lg flex items-center justify-center space-x-3">
-                <span id="lobby-game-id" class="text-3xl font-bold text-teal-600 tracking-widest"></span>
-                <button id="copy-id-btn" class="p-2 bg-gray-200 rounded-md hover:bg-gray-300">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-clipboard" viewBox="0 0 16 16"><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/></svg>
-                </button>
-            </div>
-            <div id="player-list" class="space-y-2"></div>
-            <p id="lobby-status" class="text-gray-500 animate-pulse">Waiting for 4 players to join...</p>
+    <!-- Guessing Screen -->
+    <div id="guessing-screen" class="screen">
+        <div class="text-center w-full max-w-md">
+            <h2 id="guess-prompt" class="text-3xl font-bold"></h2>
+            <p id="police-dialogue" class="text-lg italic bg-[var(--surface-main)] p-3 rounded-lg my-4"></p>
+            <div id="guess-options" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
         </div>
+    </div>
 
-        <!-- Game Screen -->
-        <div id="game-screen" class="hidden w-full max-w-md mx-auto relative">
-            <div id="reaction-overlay" class="absolute inset-0 pointer-events-none z-20"></div>
-            <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-lg">
-                <div class="flex justify-between items-center mb-4">
-                    <div class="text-sm">Room: <span id="game-room-id" class="font-bold text-teal-600"></span></div>
-                    <div class="text-sm">Round: <span id="game-round" class="font-bold"></span></div>
-                </div>
-                
-                <div id="status-display" class="text-center bg-gray-100 p-4 rounded-lg mb-4 h-16 flex items-center justify-center">
-                    <p id="status-text" class="text-lg font-semibold"></p>
-                </div>
-
-                <div id="players-container" class="grid grid-cols-2 gap-4 mb-6"></div>
-
-                <div id="my-chit-container" class="text-center">
-                    <p class="mb-2 font-semibold">Your Chit</p>
-                    <div id="my-chit-card" class="card w-48 h-24 mx-auto">
-                        <div class="card-face w-full h-full p-4 rounded-lg bg-teal-500 text-white flex items-center justify-center shadow"><p class="font-bold text-xl">Your Role</p></div>
-                        <div id="my-chit-back" class="card-back w-full h-full p-4 rounded-lg flex flex-col items-center justify-center shadow-lg"></div>
-                    </div>
-                </div>
-                
-                <div id="action-container" class="mt-6 text-center space-y-3">
-                   <button id="play-again-btn" class="hidden w-full bg-teal-500 text-white font-bold py-3 px-6 rounded-lg text-lg btn">Play Next Round</button>
-                </div>
+    <!-- Result Screen -->
+    <div id="result-screen" class="screen">
+        <div class="w-full max-w-md bg-[var(--surface-main)] p-8 rounded-2xl shadow-lg text-center">
+            <h2 id="result-title" class="text-4xl font-bold mb-4"></h2>
+            <p id="result-dialogue" class="text-xl mb-6"></p>
+            <div class="border-t border-b border-gray-400 py-4 my-4">
+                <h3 class="font-bold text-lg mb-2">Final Roles:</h3>
+                <div id="all-roles-display" class="space-y-1"></div>
             </div>
-             <div id="scores-container" class="mt-4 bg-white p-4 rounded-2xl shadow-lg">
-                <h3 class="font-bold text-center mb-2">Scoreboard</h3>
-                <div id="scores-list" class="space-y-1"></div>
-            </div>
-            <div id="emoji-bar" class="mt-4 bg-white p-2 rounded-full shadow-lg flex justify-around items-center">
-                <!-- Emojis will be injected here -->
-            </div>
+            <button id="play-again-btn" class="btn btn-primary w-full mt-4 hidden">Play Again 🔁</button>
+            <p id="waiting-for-rematch-msg">Waiting for host to start a new game...</p>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Firebase Configuration ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+        // --- Firebase Config ---
+        const firebaseConfig = {
            apiKey: "AIzaSyCp8UFvV6eOVACbaLq7ylOjEZOBitUMkfc",
            authDomain: "dongapolice-24f1c.firebaseapp.com",
            projectId: "dongapolice-24f1c",
            storageBucket: "dongapolice-24f1c.appspot.com",
            messagingSenderId: "797826379293",
-           appId: "1:797826379293:web:92a7231a8891be6527e0f4",
-           measurementId: "G-XYBV7DFMHL"
+           appId: "1:797826379293:web:92a7231a8891be6527e0f4"
         };
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'donga-police-game';
+        // Using the appId from the previous game to match existing Firestore rules
+        const appId = 'donga-police-game'; 
         
-        // --- Global State ---
-        let db, auth, userId, currentGameId = null, gameUnsubscribe = null;
-
-        // --- HTML Elements ---
-        const screens = { home: document.getElementById('home-screen'), lobby: document.getElementById('lobby-screen'), game: document.getElementById('game-screen') };
+        // --- DOM Elements ---
+        const screens = { landing: document.getElementById('landing-screen'), lobby: document.getElementById('lobby-screen'), reveal: document.getElementById('reveal-screen'), guessing: document.getElementById('guessing-screen'), result: document.getElementById('result-screen') };
         const nameInput = document.getElementById('name-input');
-        const createGameBtn = document.getElementById('create-game-btn');
-        const joinGameBtn = document.getElementById('join-game-btn');
-        const gameIdInput = document.getElementById('game-id-input');
+        const roomCodeInput = document.getElementById('room-code-input');
         const authStatus = document.getElementById('auth-status');
-        const copyIdBtn = document.getElementById('copy-id-btn');
-        const playAgainBtn = document.getElementById('play-again-btn');
-        const emojiBar = document.getElementById('emoji-bar');
+        const chit = document.getElementById('chit');
 
-        // --- Initialization ---
-        const initializeFirebase = async () => {
-            if (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("AIza") === false) {
-                authStatus.textContent = "Firebase is not configured.";
-                authStatus.classList.add('text-red-500', 'font-semibold');
-                return;
+        // --- Game State ---
+        let db, auth, userId, username;
+        let currentGameId = null;
+        let gameUnsubscribe = null;
+
+        // --- Sound Effects ---
+        let sounds;
+        const initSounds = () => {
+            sounds = {
+                flip: new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination(),
+                // FIX: Use PolySynth to prevent errors on rapid clicks
+                click: new Tone.PolySynth(Tone.Synth, {
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 }
+                }).toDestination(),
+                win: new Tone.Synth({ oscillator: { type: 'triangle8' }, envelope: { attack: 0.01, decay: 0.4, sustain: 0.1, release: 0.4 } }).toDestination(),
+                lose: new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.01, decay: 0.8, sustain: 0, release: 0.4 } }).toDestination()
+            };
+            sounds.win.volume.value = -8;
+            sounds.lose.volume.value = -8;
+        };
+
+        const playSound = (sound, note = 'C4', duration = '8n') => { 
+            if(sounds && Tone.context.state === 'running') {
+                sounds[sound].triggerAttackRelease(note, duration);
             }
+        };
+        
+        // --- UI & Screen Management ---
+        const showScreen = (screenName) => { Object.values(screens).forEach(s => s.classList.remove('active')); screens[screenName].classList.add('active'); };
+
+        const validateUsername = () => {
+            const name = nameInput.value.trim();
+            if (!name) { alert("Please enter your name!"); return null; }
+            username = name;
+            return name;
+        };
+
+        // --- Firebase Logic ---
+        const getGameRef = (roomCode) => doc(db, `artifacts/${appId}/public/data/games`, roomCode);
+
+        const initializeFirebase = async () => {
             try {
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
@@ -170,280 +202,219 @@
                 onAuthStateChanged(auth, user => {
                     if (user) {
                         userId = user.uid;
-                        createGameBtn.disabled = false;
-                        joinGameBtn.disabled = false;
-                        authStatus.textContent = "Ready to play!";
-                        authStatus.classList.replace('text-gray-500', 'text-green-600');
+                        authStatus.textContent = "Connected!";
                     }
                 });
                 await signInAnonymously(auth);
             } catch (error) {
-                console.error("Firebase connection failed:", error);
-                authStatus.textContent = error.code === 'auth/configuration-not-found' ? "Error: Anonymous Auth is not enabled in Firebase." : `Error: ${error.code}`;
-                authStatus.classList.add('text-red-500', 'font-semibold');
+                authStatus.textContent = "Connection Error!";
+                console.error("Firebase Init Error:", error);
             }
         };
 
-        const validateName = () => {
-            const name = nameInput.value.trim();
-            if (!name) {
-                alert("Please enter your name.");
-                return null;
-            }
-            return name;
-        };
-
-        // --- UI & NAVIGATION ---
-        const showScreen = (screenName) => {
-            Object.values(screens).forEach(screen => screen.classList.add('hidden'));
-            if(screens[screenName]) {
-                screens[screenName].classList.remove('hidden');
-            }
-        };
-        
-        // --- Game Flow ---
-        const createGame = async () => {
-            const name = validateName();
-            if (!name) return;
-            currentGameId = Math.random().toString(36).substring(2, 6).toUpperCase();
-            const gameRef = doc(db, `artifacts/${appId}/public/data/games`, currentGameId);
-            const newPlayer = { name, score: 0 };
+        const createRoom = async () => {
+            if (!validateUsername()) return;
+            const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+            currentGameId = roomCode;
+            const gameRef = getGameRef(roomCode);
+            const newPlayer = { name: username, revealed: false };
             await setDoc(gameRef, {
-                gameId: currentGameId,
+                hostId: userId,
                 players: { [userId]: newPlayer },
-                playerOrder: [userId],
-                gameState: 'lobby',
-                round: 0,
-                reactions: {},
-                createdAt: new Date(),
+                gameState: 'lobby', // lobby, reveal, guess, result
             });
-            subscribeToGame(currentGameId);
+            subscribeToGame(roomCode);
         };
 
-        const joinGame = async () => {
-            const name = validateName();
-            if (!name) return;
-            const gameId = gameIdInput.value.trim().toUpperCase();
-            if (!gameId) { alert("Please enter a Game ID."); return; }
-
-            console.log(`Player ${name} (${userId}) attempting to join game ${gameId}`);
-            const gameRef = doc(db, `artifacts/${appId}/public/data/games`, gameId);
-            
-            try {
-                const gameSnap = await getDoc(gameRef);
-                if (!gameSnap.exists()) { alert("Game not found."); return; }
-                const gameData = gameSnap.data();
-                if (Object.keys(gameData.players).length >= 4 && !gameData.players[userId]) { alert("This game room is full."); return; }
-                if (!gameData.players[userId]) {
-                    const newPlayer = { name, score: 0 };
-                    const newPlayers = { ...gameData.players, [userId]: newPlayer };
-                    const newPlayerOrder = [...gameData.playerOrder, userId];
-                    await updateDoc(gameRef, { players: newPlayers, playerOrder: newPlayerOrder });
-                    console.log(`Successfully updated DB for player ${userId} to join game ${gameId}`);
-                }
-                currentGameId = gameId;
-                subscribeToGame(gameId);
-            } catch(error) {
-                console.error(`Failed to join game ${gameId}. Error:`, error);
-                alert("Error: Could not join the game. This might be a permissions issue. Check the console (F12) for details.");
-            }
-        };
-        
-        const subscribeToGame = (gameId) => {
-            if (gameUnsubscribe) gameUnsubscribe();
-            showScreen('lobby');
-            const gameRef = doc(db, `artifacts/${appId}/public/data/games`, gameId);
-            gameUnsubscribe = onSnapshot(gameRef, (doc) => {
-                if (!doc.exists()) { resetGame(); return; }
-                const gameData = doc.data();
-                updateUI(gameData);
-                if (gameData.gameState === 'lobby' && gameData.playerOrder.length === 4 && gameData.playerOrder[0] === userId) {
-                    startGame(gameData);
-                }
-            }, (error) => {
-                console.error("Firestore subscription error:", error);
-                alert("Connection lost. Check Firestore rules.");
-            });
-        };
-
-        const startGame = async (gameData) => {
-            try {
-                const roles = ['Raju', 'Mantri', 'Donga', 'Police'];
-                const shuffledRoles = roles.sort(() => 0.5 - Math.random());
-                const updatedPlayers = { ...gameData.players };
-                let policeId, dongaId;
-                gameData.playerOrder.forEach((pid, i) => {
-                    updatedPlayers[pid].role = shuffledRoles[i];
-                    if (shuffledRoles[i] === 'Police') policeId = pid;
-                    if (shuffledRoles[i] === 'Donga') dongaId = pid;
-                });
-                await updateDoc(doc(db, `artifacts/${appId}/public/data/games`, currentGameId), {
-                    players: updatedPlayers,
-                    gameState: 'waiting_for_guess',
-                    round: gameData.round + 1,
-                    policeId, dongaId, guessResult: null
-                });
-            } catch(error) {
-                console.error("Error starting game:", error);
-                alert("Could not start the next round.");
-            }
-        };
-
-        const makeGuess = async (guessedPlayerId) => {
-            const gameRef = doc(db, `artifacts/${appId}/public/data/games`, currentGameId);
+        const joinRoom = async () => {
+            if (!validateUsername()) return;
+            const roomCode = roomCodeInput.value.toUpperCase();
+            if (!roomCode) { alert("Please enter a room code."); return; }
+            currentGameId = roomCode;
+            const gameRef = getGameRef(roomCode);
             const gameSnap = await getDoc(gameRef);
-            if (!gameSnap.exists()) return;
+            if (!gameSnap.exists()) { alert("Room not found!"); return; }
+            const newPlayer = { name: username, revealed: false };
+            await updateDoc(gameRef, { [`players.${userId}`]: newPlayer });
+            subscribeToGame(roomCode);
+        };
+
+        const subscribeToGame = (roomCode) => {
+            if (gameUnsubscribe) gameUnsubscribe();
+            const gameRef = getGameRef(roomCode);
+            gameUnsubscribe = onSnapshot(gameRef, (doc) => {
+                if (!doc.exists()) { alert("Game room closed."); showScreen('landing'); return; }
+                handleGameState(doc.data());
+            });
+        };
+        
+        // --- Game Flow & State Machine ---
+        const handleGameState = (gameData) => {
+            const { gameState, players, hostId } = gameData;
+            const isHost = userId === hostId;
+            const playerList = Object.values(players).map(p => p.name);
+
+            switch (gameState) {
+                case 'lobby':
+                    showScreen('lobby');
+                    document.getElementById('lobby-room-code').textContent = currentGameId;
+                    const playerListContainer = document.getElementById('lobby-player-list');
+                    playerListContainer.innerHTML = playerList.map(name => `<div class="bg-gray-700 text-white p-2 rounded-lg">${name}</div>`).join('');
+                    const startGameBtn = document.getElementById('start-game-btn');
+                    const waitingMsg = document.getElementById('waiting-for-host-msg');
+                    if (isHost && playerList.length >= 3) {
+                        startGameBtn.style.display = 'block';
+                        waitingMsg.style.display = 'none';
+                    } else {
+                        startGameBtn.style.display = 'none';
+                        waitingMsg.style.display = 'block';
+                    }
+                    break;
+                case 'reveal':
+                    showScreen('reveal');
+                    // Reset chit flip animation
+                    chit.classList.remove('is-flipped');
+                    document.getElementById('waiting-msg').classList.remove('opacity-100');
+
+                    const myRole = gameData.roles[userId];
+                    const [emoji, name] = myRole.split(' ');
+                    document.getElementById('chit-role-emoji').textContent = emoji;
+                    document.getElementById('chit-role-name').textContent = name;
+                    
+                    const allRevealed = Object.values(players).every(p => p.revealed);
+                    if (allRevealed) {
+                        updateDoc(getGameRef(currentGameId), { gameState: 'guess' });
+                    } else if (players[userId].revealed) {
+                       document.getElementById('waiting-msg').classList.add('opacity-100');
+                    }
+                    break;
+                case 'guess':
+                    showScreen('guessing');
+                    const policeId = Object.keys(gameData.roles).find(uid => gameData.roles[uid] === '👮 Police');
+                    const policePlayer = players[policeId];
+                    document.getElementById('guess-prompt').textContent = userId === policeId ? "Your turn to guess!" : `Waiting for ${policePlayer.name} (Police) to guess...`;
+                    
+                    const dialogues = ["Arrest chesey time ochindhi ra! 🚨", "Mee guess correct avvali! �", "Andaru innocent ani anipistunnaru 😅"];
+                    document.getElementById('police-dialogue').textContent = dialogues[Math.floor(Math.random() * dialogues.length)];
+
+                    const guessOptions = document.getElementById('guess-options');
+                    guessOptions.innerHTML = '';
+                    if (userId === policeId) {
+                        Object.entries(players).forEach(([uid, player]) => {
+                            if (uid !== policeId) {
+                                const btn = document.createElement('button');
+                                btn.className = 'btn btn-secondary';
+                                btn.textContent = player.name;
+                                btn.onclick = () => makeGuess(uid);
+                                guessOptions.appendChild(btn);
+                            }
+                        });
+                    }
+                    break;
+                case 'result':
+                    showScreen('result');
+                    const { winner, dialogue, roles } = gameData.result;
+                    document.getElementById('result-title').textContent = winner;
+                    document.getElementById('result-dialogue').textContent = dialogue;
+                    const allRolesDisplay = document.getElementById('all-roles-display');
+                    allRolesDisplay.innerHTML = Object.keys(roles).map(uid => `<p>${players[uid].name}: ${roles[uid]}</p>`).join('');
+
+                    const playAgainBtn = document.getElementById('play-again-btn');
+                    const rematchMsg = document.getElementById('waiting-for-rematch-msg');
+                    if (isHost) {
+                        playAgainBtn.style.display = 'block';
+                        rematchMsg.style.display = 'none';
+                    } else {
+                        playAgainBtn.style.display = 'none';
+                        rematchMsg.style.display = 'block';
+                    }
+                    break;
+            }
+        };
+
+        const startGameFlow = async () => {
+            const gameRef = getGameRef(currentGameId);
+            const gameSnap = await getDoc(gameRef);
             const gameData = gameSnap.data();
-            const isCorrect = guessedPlayerId === gameData.dongaId;
-            const updatedPlayers = { ...gameData.players };
-            const points = { 'Raju': 1000, 'Mantri': 800, 'Police': 500, 'Donga': 0 };
-            const roundScores = {};
-            if (isCorrect) {
-                gameData.playerOrder.forEach(pid => { roundScores[pid] = points[gameData.players[pid].role]; });
-            } else {
-                const wronglyAccusedRole = gameData.players[guessedPlayerId].role;
-                gameData.playerOrder.forEach(pid => {
-                    if (pid === gameData.policeId || pid === guessedPlayerId) roundScores[pid] = 0;
-                    else if (pid === gameData.dongaId) roundScores[pid] = points[wronglyAccusedRole];
-                    else roundScores[pid] = points[gameData.players[pid].role];
-                });
-            }
-            for (const pid in roundScores) {
-                if (updatedPlayers[pid]) updatedPlayers[pid].score += roundScores[pid];
-            }
-            await updateDoc(gameRef, {
-                gameState: 'round_over', // Go directly to round_over
-                guessResult: { isCorrect, roundScores },
-                players: updatedPlayers
-            });
-        };
-        
-        const playAgain = async () => {
-            const gameSnap = await getDoc(doc(db, `artifacts/${appId}/public/data/games`, currentGameId));
-            if(gameSnap.exists()) {
-                startGame(gameSnap.data());
-            }
-        };
-
-        // --- UI Updates ---
-        const updateUI = (gameData) => {
-            if (gameData.gameState === 'lobby') {
-                showScreen('lobby');
-                document.getElementById('lobby-game-id').textContent = gameData.gameId;
-                const playerList = document.getElementById('player-list');
-                playerList.innerHTML = '';
-                gameData.playerOrder.forEach((pid, i) => {
-                    playerList.innerHTML += `<div class="bg-gray-100 p-3 rounded-lg text-left flex items-center space-x-3"><span class="font-mono text-gray-400">${i+1}.</span><span class="font-semibold">${gameData.players[pid].name} ${pid === userId ? '(You)' : ''}</span></div>`;
-                });
-                document.getElementById('lobby-status').textContent = gameData.playerOrder.length === 4 ? 'Starting game...' : `Waiting for ${4-gameData.playerOrder.length} more players...`;
-            } else {
-                showScreen('game');
-                renderGameScreen(gameData);
-                handleReactions(gameData);
-            }
-        };
-
-        const renderGameScreen = (gameData) => {
-            const me = gameData.players[userId];
-            if (!me) return;
-            const { gameState, guessResult, players, playerOrder, policeId, round } = gameData;
-            const isHost = playerOrder[0] === userId;
-            const isPolice = me.role === 'Police';
-
-            document.getElementById('game-room-id').textContent = gameData.gameId;
-            document.getElementById('game-round').textContent = round;
+            const playerIds = Object.keys(gameData.players);
             
-            // My Chit
-            const myChitCard = document.getElementById('my-chit-card');
-            const myChitBack = document.getElementById('my-chit-back');
-            const roleEmojis = { 'Raju': '👑', 'Mantri': '👸', 'Donga': '👺', 'Police': '👮‍♂️' };
-            const roleColors = { 'Raju': 'bg-amber-400', 'Mantri': 'bg-fuchsia-400', 'Donga': 'bg-rose-500', 'Police': 'bg-sky-500' };
-            myChitBack.innerHTML = `<span class="text-4xl">${roleEmojis[me.role]}</span><p class="font-bold text-xl mt-1">${me.role}</p>`;
-            myChitBack.className = `card-back w-full h-full p-4 rounded-lg flex flex-col items-center justify-center shadow-lg text-white ${roleColors[me.role]}`;
-            myChitCard.classList.add('is-flipped');
+            // Assign roles
+            let assignedRoles = Array(playerIds.length).fill('🧍‍♂️ Public');
+            let policeIdx = Math.floor(Math.random() * playerIds.length);
+            let dongaIdx;
+            do {
+                dongaIdx = Math.floor(Math.random() * playerIds.length);
+            } while (dongaIdx === policeIdx);
+            assignedRoles[policeIdx] = '👮 Police';
+            assignedRoles[dongaIdx] = '🕵️‍♂️ Donga';
 
-            // Player Cards
-            const playersContainer = document.getElementById('players-container');
-            playersContainer.innerHTML = '';
-            playerOrder.filter(pid => pid !== userId).forEach(pid => {
-                const canGuess = isPolice && gameState === 'waiting_for_guess';
-                const cardIsFlipped = gameState === 'round_over';
-                playersContainer.innerHTML += `
-                    <div id="player-card-${pid}" class="card ${cardIsFlipped ? 'is-flipped' : ''} ${canGuess ? 'cursor-pointer hover:shadow-xl' : 'cursor-default'}" ${canGuess ? `onclick="window.makeGuess('${pid}')"` : ''}>
-                        <div class="card-face w-full h-28 p-4 rounded-lg bg-white flex flex-col items-center justify-center shadow"><p class="font-bold text-lg">${players[pid].name}</p>${canGuess ? '<p class="text-sm text-teal-500 font-semibold mt-1">Guess?</p>' : ''}</div>
-                        <div class="card-back w-full h-28 p-4 rounded-lg flex flex-col items-center justify-center shadow-lg text-white ${roleColors[players[pid].role]}"><span class="text-4xl">${roleEmojis[players[pid].role]}</span><p class="font-bold text-lg mt-1">${players[pid].role}</p></div>
-                    </div>`;
-            });
+            const roles = {};
+            playerIds.forEach((id, i) => roles[id] = assignedRoles[i]);
 
-            // Status Text and Action Buttons
-            const statusText = document.getElementById('status-text');
-            playAgainBtn.classList.add('hidden');
-            if (gameState === 'waiting_for_guess') {
-                statusText.textContent = isPolice ? 'Guess who is the Donga!' : `Waiting for Police (${players[policeId].name}) to guess...`;
-            } else if (gameState === 'round_over') {
-                const scoreGained = guessResult.roundScores[userId];
-                statusText.innerHTML = guessResult.isCorrect ? `✅ Correct! The Donga was caught! <span class="font-normal">(+${scoreGained} pts)</span>` : `❌ Wrong! The Donga escaped! <span class="font-normal">(+${scoreGained} pts)</span>`;
-                if (isHost) playAgainBtn.classList.remove('hidden');
-            }
+            await updateDoc(gameRef, { gameState: 'reveal', roles });
+        };
 
-            // Scoreboard
-            const scoresList = document.getElementById('scores-list');
-            scoresList.innerHTML = '';
-            const sortedPlayerOrder = [...playerOrder].sort((a, b) => players[b].score - players[a].score);
-            sortedPlayerOrder.forEach(pid => {
-                scoresList.innerHTML += `<div class="flex justify-between items-center text-sm p-2 rounded-md ${pid === userId ? 'bg-teal-50' : ''}"><span class="font-semibold">${players[pid].name} ${pid === userId ? '(You)' : ''}</span><span class="font-bold text-teal-600">${players[pid].score} pts</span></div>`;
-            });
+        const revealMyRole = async () => {
+            if (chit.classList.contains('is-flipped')) return;
+            playSound('flip', 'A5');
+            chit.classList.add('is-flipped');
+            const gameRef = getGameRef(currentGameId);
+            await updateDoc(gameRef, { [`players.${userId}.revealed`]: true });
         };
         
-        // --- Reactions ---
-        const emojis = ['�', '😂', '🤔', '👎', '🎉', '🤯'];
-        emojiBar.innerHTML = emojis.map(e => `<button class="text-2xl p-2 rounded-full hover:bg-gray-200 transition-colors">${e}</button>`).join('');
-        emojiBar.addEventListener('click', e => {
-            if (e.target.tagName === 'BUTTON') sendReaction(e.target.textContent);
-        });
-
-        const sendReaction = async (emoji) => {
-            if (!currentGameId) return;
-            await updateDoc(doc(db, `artifacts/${appId}/public/data/games`, currentGameId), {
-                [`reactions.${userId}`]: { emoji, timestamp: Date.now() }
-            });
+        const makeGuess = async (guessedId) => {
+            const gameRef = getGameRef(currentGameId);
+            const gameSnap = await getDoc(gameRef);
+            const { roles } = gameSnap.data();
+            const dongaId = Object.keys(roles).find(uid => roles[uid] === '🕵️‍♂️ Donga');
+            const policeWon = guessedId === dongaId;
+            
+            const result = {
+                roles,
+                winner: policeWon ? "Police Wins! 🏆" : "Donga Wins! 😎",
+                dialogue: policeWon ? "Donga dorikesadu! 👮🔥" : "Wrong guess ra babu... 😵‍💫 Thanks! Nuvve donga! 😂",
+            };
+            
+            await updateDoc(gameRef, { gameState: 'result', result });
         };
 
-        let lastReactionTime = {};
-        const handleReactions = (gameData) => {
-            const reactionOverlay = document.getElementById('reaction-overlay');
-            for (const pid in gameData.reactions) {
-                if (!lastReactionTime[pid] || lastReactionTime[pid] < gameData.reactions[pid].timestamp) {
-                    lastReactionTime[pid] = gameData.reactions[pid].timestamp;
-                    const reactionEl = document.createElement('div');
-                    reactionEl.className = 'emoji-reaction';
-                    reactionEl.textContent = gameData.reactions[pid].emoji;
-                    reactionEl.style.left = `${Math.random() * 80 + 10}%`;
-                    reactionOverlay.appendChild(reactionEl);
-                    setTimeout(() => reactionEl.remove(), 2000);
-                }
-            }
-        };
-        
-        const resetGame = () => {
-             if (gameUnsubscribe) gameUnsubscribe();
-             Object.assign(window, { currentGameId: null, gameUnsubscribe: null });
-             gameIdInput.value = '';
-             showScreen('home');
-        };
+        const playAgain = async () => {
+            const gameRef = getGameRef(currentGameId);
+            const gameSnap = await getDoc(gameRef);
+            const players = gameSnap.data().players;
+            // Reset revealed status for all players
+            Object.keys(players).forEach(uid => players[uid].revealed = false);
+            await updateDoc(gameRef, { players });
+            startGameFlow();
+        }
 
         // --- Event Listeners ---
-        window.onload = initializeFirebase;
-        createGameBtn.addEventListener('click', createGame);
-        joinGameBtn.addEventListener('click', joinGame);
-        playAgainBtn.addEventListener('click', playAgain);
-        copyIdBtn.addEventListener('click', () => {
-            navigator.clipboard.writeText(document.getElementById('lobby-game-id').textContent).then(() => {
-                copyIdBtn.innerHTML = 'Copied!';
-                setTimeout(() => { copyIdBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-clipboard" viewBox="0 0 16 16"><path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/><path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/></svg>`; }, 1500);
+        const addClickListener = (id, handler) => {
+            document.getElementById(id).addEventListener('click', async () => {
+                if (Tone.context.state !== 'running') await Tone.start();
+                playSound('click', 'C5');
+                handler();
             });
+        };
+
+        addClickListener('create-room-btn', createRoom);
+        addClickListener('join-room-btn', joinRoom);
+        addClickListener('start-game-btn', startGameFlow);
+        addClickListener('chit-scene', revealMyRole);
+        addClickListener('play-again-btn', playAgain);
+        addClickListener('copy-code-btn', () => {
+            navigator.clipboard.writeText(currentGameId);
+            alert("Room code copied!");
         });
-        window.makeGuess = makeGuess; // Expose for inline onclick
+        document.getElementById('dark-mode-toggle').addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+        });
+
+        // --- Initial Setup ---
+        window.onload = () => {
+            initSounds();
+            initializeFirebase();
+        };
 
     </script>
 </body>
