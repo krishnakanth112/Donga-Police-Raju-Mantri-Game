@@ -28,9 +28,13 @@
         .btn {
             transition: all 0.2s ease-in-out;
         }
-        .btn:hover {
+        .btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
         }
     </style>
 </head>
@@ -40,9 +44,9 @@
         <!-- Home Screen -->
         <div id="home-screen" class="text-center space-y-6 bg-white p-8 rounded-2xl shadow-lg">
             <h1 class="text-4xl font-bold text-teal-600">Donga Police</h1>
-            <p class="text-gray-500">The classic 4-player chit game, now online!</p>
+            <p id="auth-status" class="text-gray-500">Connecting to server...</p>
             <div>
-                <button id="create-game-btn" class="w-full bg-teal-500 text-white font-bold py-3 px-6 rounded-lg text-lg btn">Create New Game</button>
+                <button id="create-game-btn" class="w-full bg-teal-500 text-white font-bold py-3 px-6 rounded-lg text-lg btn" disabled>Create New Game</button>
             </div>
             <div class="flex items-center space-x-2">
                 <hr class="w-full border-gray-300">
@@ -51,7 +55,7 @@
             </div>
             <div class="space-y-3">
                 <input type="text" id="game-id-input" placeholder="Enter Game ID" class="w-full text-center p-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none uppercase tracking-widest font-semibold">
-                <button id="join-game-btn" class="w-full bg-gray-700 text-white font-bold py-3 px-6 rounded-lg text-lg btn">Join Game</button>
+                <button id="join-game-btn" class="w-full bg-gray-700 text-white font-bold py-3 px-6 rounded-lg text-lg btn" disabled>Join Game</button>
             </div>
         </div>
 
@@ -140,6 +144,7 @@
         const gameIdInput = document.getElementById('game-id-input');
         const copyIdBtn = document.getElementById('copy-id-btn');
         const playAgainBtn = document.getElementById('play-again-btn');
+        const authStatus = document.getElementById('auth-status');
 
         // --- INITIALIZATION ---
         const initializeFirebase = async () => {
@@ -152,6 +157,10 @@
                     if (user) {
                         userId = user.uid;
                         console.log("Authenticated with User ID:", userId);
+                        // Enable buttons and update status once authenticated
+                        createGameBtn.disabled = false;
+                        joinGameBtn.disabled = false;
+                        authStatus.textContent = "The classic 4-player chit game, now online!";
                     } else {
                         await signInAnonymously(auth);
                     }
@@ -159,7 +168,7 @@
 
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
-                alert("Could not connect to the game server. Please refresh.");
+                authStatus.textContent = "Error connecting to server.";
             }
         };
         
@@ -176,10 +185,7 @@
         };
 
         // --- GAME LOGIC ---
-
         const createGame = async () => {
-            if (!userId) { alert("Not authenticated. Please wait."); return; }
-            
             currentGameId = generateGameId();
             const gameRef = doc(db, `artifacts/${appId}/public/data/games`, currentGameId);
             
@@ -200,10 +206,11 @@
         };
 
         const joinGame = async () => {
-            if (!userId) { alert("Not authenticated. Please wait."); return; }
-            
             const gameId = gameIdInput.value.trim().toUpperCase();
-            if (!gameId) { alert("Please enter a Game ID."); return; }
+            if (!gameId) { 
+                alert("Please enter a Game ID.");
+                return; 
+            }
 
             const gameRef = doc(db, `artifacts/${appId}/public/data/games`, gameId);
             const gameSnap = await getDoc(gameRef);
@@ -241,9 +248,8 @@
                     const gameData = doc.data();
                     updateUI(gameData);
 
-                    // Auto-start game when lobby is full
+                    // Auto-start game when lobby is full and host is present
                     if (gameData.gameState === 'lobby' && gameData.playerOrder.length === 4) {
-                         // Only the first player (host) should start the game
                         if (gameData.playerOrder[0] === userId) {
                             startGame(gameData);
                         }
@@ -286,28 +292,41 @@
             
             const gameData = gameSnap.data();
             const isCorrect = guessedPlayerId === gameData.dongaId;
-
-            // Calculate new scores
             const updatedPlayers = { ...gameData.players };
             const points = { 'Raju': 1000, 'Mantri': 800, 'Police': 500, 'Donga': 0 };
             
-            if (isCorrect) {
-                updatedPlayers[gameData.policeId].score += points.Police;
-                updatedPlayers[gameData.dongaId].score += points.Donga;
-            } else {
-                updatedPlayers[gameData.policeId].score += 0;
-                updatedPlayers[gameData.dongaId].score += points.Raju; // Donga gets Raja's points
-            }
-            
-            // Raja and Mantri always get their points unless they are wrongly accused
-            gameData.playerOrder.forEach(pid => {
-                if (updatedPlayers[pid].role === 'Raju') {
-                     updatedPlayers[pid].score += points.Raju;
-                } else if(updatedPlayers[pid].role === 'Mantri') {
-                    updatedPlayers[pid].score += points.Mantri;
-                }
-            });
+            const roundScores = {};
 
+            // Determine points for this round
+            if (isCorrect) {
+                // If guess is correct, everyone gets their role's points
+                gameData.playerOrder.forEach(pid => {
+                    const playerRole = gameData.players[pid].role;
+                    roundScores[pid] = points[playerRole];
+                });
+            } else {
+                // If guess is wrong, Police and wrongly accused get 0.
+                // Donga gets the points of the wrongly accused player.
+                const wronglyAccusedRole = gameData.players[guessedPlayerId].role;
+
+                gameData.playerOrder.forEach(pid => {
+                    const playerRole = gameData.players[pid].role;
+                    if (pid === gameData.policeId || pid === guessedPlayerId) {
+                        roundScores[pid] = 0; // Police and wrongly accused get 0
+                    } else if (pid === gameData.dongaId) {
+                        roundScores[pid] = points[wronglyAccusedRole]; // Donga gets points
+                    } else {
+                        roundScores[pid] = points[playerRole]; // Others get their points
+                    }
+                });
+            }
+
+            // Apply round scores to total scores
+            for (const pid in roundScores) {
+                if (updatedPlayers[pid]) {
+                    updatedPlayers[pid].score += roundScores[pid];
+                }
+            }
 
             await updateDoc(gameRef, {
                 gameState: 'reveal',
@@ -329,7 +348,6 @@
 
         // --- UI UPDATES ---
         const updateUI = (gameData) => {
-            // Update based on gameState
             if (gameData.gameState === 'lobby') {
                 showScreen('lobby');
                 document.getElementById('lobby-game-id').textContent = gameData.gameId;
@@ -351,6 +369,8 @@
 
         const renderGameScreen = (gameData) => {
             const me = gameData.players[userId];
+            if (!me) return; // Exit if player data not found yet
+            
             const isPolice = me.role === 'Police';
             const { gameState, guessResult } = gameData;
             
@@ -376,7 +396,7 @@
                 const cardIsFlipped = gameState === 'reveal';
 
                 const playerCardHTML = `
-                    <div id="player-card-${pid}" class="card ${cardIsFlipped ? 'is-flipped' : ''} ${canGuess ? 'cursor-pointer' : 'cursor-default'}" ${canGuess ? `onclick="window.makeGuess('${pid}')"` : ''}>
+                    <div id="player-card-${pid}" class="card ${cardIsFlipped ? 'is-flipped' : ''} ${canGuess ? 'cursor-pointer hover:shadow-xl' : 'cursor-default'}" ${canGuess ? `onclick="window.makeGuess('${pid}')"` : ''}>
                         <div class="card-face w-full h-28 p-4 rounded-lg bg-white flex flex-col items-center justify-center shadow">
                             <p class="font-bold text-lg">${player.name}</p>
                             ${canGuess ? '<p class="text-sm text-teal-500 font-semibold mt-1">Guess?</p>' : ''}
@@ -396,7 +416,7 @@
 
             if (gameState === 'waiting_for_guess') {
                 statusText.textContent = isPolice ? 'Guess who is the Donga!' : `Waiting for Police (${gameData.players[gameData.policeId].name}) to guess...`;
-            } else if (gameState === 'reveal') {
+            } else if (gameState === 'reveal' && guessResult) {
                 if (guessResult.isCorrect) {
                     statusText.innerHTML = `✅ Correct! <span class="font-normal">${gameData.players[gameData.policeId].name} caught the Donga!</span>`;
                 } else {
@@ -412,7 +432,9 @@
             // Update scoreboard
             const scoresList = document.getElementById('scores-list');
             scoresList.innerHTML = '';
-            gameData.playerOrder.forEach(pid => {
+            const sortedPlayerOrder = [...gameData.playerOrder].sort((a,b) => gameData.players[b].score - gameData.players[a].score);
+
+            sortedPlayerOrder.forEach(pid => {
                 const player = gameData.players[pid];
                 scoresList.innerHTML += `
                     <div class="flex justify-between items-center text-sm p-2 rounded-md ${pid === userId ? 'bg-teal-50' : ''}">
@@ -430,7 +452,6 @@
              gameIdInput.value = '';
              showScreen('home');
         };
-
 
         // --- EVENT LISTENERS ---
         window.onload = initializeFirebase;
