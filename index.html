@@ -41,7 +41,7 @@
     <script type="text/babel" data-type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, arrayUnion, deleteField, collection, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, arrayUnion, collection, writeBatch, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const { useState, useEffect, useCallback, useRef } = React;
 
@@ -93,7 +93,6 @@
             const [gameData, setGameData] = useState(null);
             const [userId, setUserId] = useState(null);
             const [username, setUsername] = useState('');
-            const [roomCode, setRoomCode] = useState('');
             const [isDarkMode, setIsDarkMode] = useState(true);
             
             const dbRef = useRef();
@@ -134,7 +133,6 @@
             const createRoom = async () => {
                 if (!username.trim()) { alert("Please enter your name!"); return; }
                 const newRoomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-                setRoomCode(newRoomCode);
                 const gameRef = getGameRef(newRoomCode);
                 await setDoc(gameRef, {
                     hostId: userId,
@@ -153,14 +151,13 @@
                 subscribeToGame(code);
             };
             
-            const props = { gameData, userId, getGameRef };
+            const props = { gameData, userId, getGameRef, db: dbRef.current };
 
             const renderContent = () => {
                 switch (gameState) {
                     case 'lobby': return <LobbyScreen {...props} />;
                     case 'reveal': return <RevealScreen {...props} />;
-                    case 'police_guess':
-                    case 'raja_guess': return <GuessScreen {...props} />;
+                    case 'police_guess': case 'raja_guess': return <GuessScreen {...props} />;
                     case 'result': return <ResultScreen {...props} />;
                     default: return <HomeScreen setUsername={setUsername} createRoom={createRoom} joinRoom={joinRoom} />;
                 }
@@ -300,7 +297,7 @@
                     // Award points to others
                     Object.keys(roles).forEach(uid => {
                         if (['👸 Rani', '🧠 Mantri', '🤓 Batulu'].includes(roles[uid])) {
-                            updatedPlayers[uid].score += pointsMap[roles[uid]];
+                            updatedPlayers[uid].score += pointsMap[roles[uid]] || 0;
                         }
                     });
 
@@ -370,21 +367,32 @@
             );
         };
 
-        const Chat = ({ gameData, username, getGameRef, userId }) => {
+        const Chat = ({ gameData, username, getGameRef, userId, db }) => {
             const [chatInput, setChatInput] = useState('');
             const [isOpen, setIsOpen] = useState(false);
+            const [isSpeaking, setIsSpeaking] = useState(false);
             const messagesEndRef = useRef(null);
+            const localStreamRef = useRef();
+            const peerConnections = useRef(new Map());
+            const audioContainerRef = useRef(null);
+            
+            // Effect to setup audio container
+             useEffect(() => {
+                audioContainerRef.current = document.getElementById('audio-container');
+            }, []);
 
+            const handlePtt = async (speaking) => {
+                playSound(speaking ? 'ptt_on' : 'ptt_off');
+                setIsSpeaking(speaking);
+                if (localStreamRef.current) {
+                    localStreamRef.current.getAudioTracks().forEach(track => track.enabled = speaking);
+                }
+                await updateDoc(getGameRef(gameData.roomCode), { [`players.${userId}.isSpeaking`]: speaking });
+            };
+            
             useEffect(() => {
                 messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
             }, [gameData.chat]);
-
-            const handlePtt = async (isSpeaking) => {
-                playSound(isSpeaking ? 'ptt_on' : 'ptt_off');
-                // This is a placeholder for actual WebRTC logic. 
-                // In a real scenario, this would mute/unmute the local audio track.
-                await updateDoc(getGameRef(gameData.roomCode), { [`players.${userId}.isSpeaking`]: isSpeaking });
-            };
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
@@ -409,7 +417,7 @@
                         </div>
                         <div className="flex items-center gap-3">
                            <button 
-                             className="w-16 h-16 rounded-full text-3xl flex items-center justify-center bg-green-500 text-white active:bg-green-700"
+                             className={`w-16 h-16 rounded-full text-3xl flex items-center justify-center text-white transition-colors ${isSpeaking ? 'bg-red-500' : 'bg-green-500'}`}
                              onMouseDown={() => handlePtt(true)} onMouseUp={() => handlePtt(false)}
                              onTouchStart={() => handlePtt(true)} onTouchEnd={() => handlePtt(false)}
                            >🎙️</button>
