@@ -5,13 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Donga Police: Raja Rani Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Polyfill for process error in browser environment
+        window.process = { env: { NODE_ENV: 'development' } };
+    </script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
     <style>
         :root {
-            --bg-dark: #1a202c; --bg-light: #f0f9ff;
-            --text-dark: #e2e8f0; --text-light: #1e293b;
-            --surface-dark: #2d3748; --surface-light: #ffffff;
-            --primary: #3b82f6; --primary-hover: #2563eb;
+            --bg-dark: #111827; --bg-light: #f0f9ff;
+            --text-dark: #e5e7eb; --text-light: #1f2937;
+            --surface-dark: #1f2937; --surface-light: #ffffff;
+            --primary: #3b82f6;
         }
         html.dark {
             --bg-main: var(--bg-dark); --text-main: var(--text-dark); --surface-main: var(--surface-dark);
@@ -23,447 +30,377 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-main); color: var(--text-main);
             transition: background-color 0.3s, color 0.3s;
-            overflow: hidden;
         }
-        .screen {
-            display: none; width: 100%; height: 100%; flex-direction: column; justify-content: center;
-            align-items: center; text-align: center; padding: 1.25rem; box-sizing: border-box;
-            position: absolute; top: 0; left: 0; opacity: 0; transition: opacity 0.5s ease-in-out;
-        }
-        .screen.active { display: flex; opacity: 1; z-index: 10; }
-        .btn {
-            padding: 0.75rem 1.75rem; font-size: 1.1rem; font-weight: bold; border-radius: 0.75rem;
-            cursor: pointer; transition: all 0.2s ease; border: none;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-primary { background-color: var(--primary); color: white; }
-        .btn-secondary { background-color: #64748b; color: white; }
-
-        .input-field {
-            background-color: var(--surface-main); color: var(--text-main);
-            border: 2px solid #94a3b8; border-radius: 0.5rem;
-            padding: 0.625rem; font-size: 1rem; width: 100%;
-        }
-        .chit-scene { width: 200px; height: 280px; perspective: 1000px; cursor: pointer; }
-        .chit { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.8s; }
+        .chit-scene { perspective: 1000px; }
+        .chit { transform-style: preserve-3d; transition: transform 0.8s; }
         .chit.is-flipped { transform: rotateY(180deg); }
-        .chit-face {
-            position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            border-radius: 1rem; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        .chit-front { background: linear-gradient(135deg, #4b5563, #1f2937); color: white; }
-        .chit-back { background: linear-gradient(135deg, #fef08a, #facc15); color: #422006; transform: rotateY(180deg); }
-
-        #dark-mode-toggle { position: fixed; top: 1rem; right: 1rem; font-size: 1.5rem; cursor: pointer; z-index: 999; }
-        
-        /* Chat Styles */
-        #chat-container {
-            position: fixed; bottom: 1rem; right: 1rem; width: 300px; z-index: 1000;
-            display: none; flex-direction: column;
-        }
-        #chat-toggle {
-            display: block; width: 60px; height: 60px; background-color: var(--primary);
-            color: white; border-radius: 50%; text-align: center; line-height: 60px;
-            font-size: 2rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            align-self: flex-end;
-        }
-        #chat-window {
-            background-color: var(--surface-main); border-radius: 0.75rem; overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2); height: 400px;
-            display: none; flex-direction: column;
-        }
-        #chat-messages { flex-grow: 1; padding: 0.75rem; overflow-y: auto; text-align: left;}
-        .message { margin-bottom: 0.5rem; }
-        .message strong { color: var(--primary); }
+        .chit-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+        .confetti { position: absolute; animation-timing-function: linear; }
     </style>
 </head>
 <body>
+    <div id="root"></div>
+    <div id="audio-container"></div>
 
-    <div id="dark-mode-toggle">🌙</div>
-
-    <!-- Home Screen -->
-    <div id="home-screen" class="screen active">
-        <div class="w-full max-w-md bg-[var(--surface-main)] p-8 rounded-2xl shadow-xl space-y-6">
-            <h1 class="text-4xl font-bold text-[var(--primary)]">Donga Police</h1>
-            <p class="text-xl font-semibold -mt-4">Raja Rani Edition</p>
-            <input type="text" id="name-input" class="input-field text-center" placeholder="Enter Your Name">
-            <div class="space-y-3">
-                <button id="create-room-btn" class="btn btn-primary w-full">Create Room 👑</button>
-                <div class="flex items-center gap-3">
-                    <input type="text" id="room-code-input" class="input-field uppercase" placeholder="Room Code">
-                    <button id="join-room-btn" class="btn btn-secondary">Join</button>
-                </div>
-            </div>
-            <p id="auth-status" class="text-xs text-gray-500 pt-4">Connecting...</p>
-        </div>
-    </div>
-
-    <!-- Lobby Screen -->
-    <div id="lobby-screen" class="screen">
-        <div class="w-full max-w-md bg-[var(--surface-main)] p-8 rounded-2xl shadow-xl">
-            <h2 class="text-3xl font-bold mb-2">Lobby</h2>
-            <div class="flex items-center justify-center gap-2 mb-4">
-                <p>Room Code: <strong id="lobby-room-code" class="text-2xl text-[var(--primary)] tracking-widest"></strong></p>
-                <button id="copy-code-btn" class="text-2xl p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">📋</button>
-            </div>
-            <div id="lobby-player-list" class="space-y-2 mb-6 min-h-[150px] bg-gray-100 dark:bg-gray-800 p-4 rounded-lg"></div>
-            <button id="start-game-btn" class="btn btn-primary w-full text-xl hidden">Start Game 🔥</button>
-            <p id="waiting-for-host-msg">Waiting for host to start...</p>
-        </div>
-    </div>
-    
-    <!-- Role Reveal Screen -->
-    <div id="reveal-screen" class="screen">
-        <h2 class="text-3xl font-bold mb-2">Your Secret Role Is...</h2>
-        <p class="mb-6">Don't show anyone! 🤫</p>
-        <div class="chit-scene" id="chit-scene">
-            <div class="chit" id="chit">
-                <div class="chit-face chit-front"><div class="text-3xl">🎴</div><div class="font-bold text-xl mt-2">Click to Reveal</div></div>
-                <div class="chit-face chit-back"><div id="chit-role-emoji" class="text-7xl"></div><div id="chit-role-name" class="text-3xl font-bold mt-2"></div></div>
-            </div>
-        </div>
-        <p id="waiting-msg" class="text-lg mt-8 opacity-0 transition-opacity">Waiting for others to see their roles...</p>
-    </div>
-
-    <!-- Guessing Screen -->
-    <div id="guessing-screen" class="screen">
-        <div class="text-center w-full max-w-md">
-            <h2 id="guess-prompt" class="text-3xl font-bold"></h2>
-            <p id="police-dialogue" class="text-lg italic bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 p-3 rounded-lg my-4"></p>
-            <div id="guess-options" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
-        </div>
-    </div>
-
-    <!-- Result Screen -->
-    <div id="result-screen" class="screen">
-        <div class="w-full max-w-lg bg-[var(--surface-main)] p-8 rounded-2xl shadow-xl text-center relative overflow-hidden">
-            <div id="confetti-container" class="absolute inset-0 pointer-events-none"></div>
-            <h2 id="result-title" class="text-4xl font-bold mb-4"></h2>
-            <p id="result-dialogue" class="text-xl mb-6 font-semibold"></p>
-            <div class="grid grid-cols-2 gap-4 my-4">
-                <div id="all-roles-display" class="space-y-2 text-left bg-gray-100 dark:bg-gray-800 p-4 rounded-lg"></div>
-                <div id="scoreboard" class="space-y-2 text-left bg-gray-100 dark:bg-gray-800 p-4 rounded-lg"></div>
-            </div>
-            <button id="play-again-btn" class="btn btn-primary w-full mt-4 hidden">Play Next Round 🔁</button>
-            <p id="waiting-for-rematch-msg">Waiting for host to start a new game...</p>
-        </div>
-    </div>
-    
-    <!-- Chat -->
-    <div id="chat-container">
-        <div id="chat-window">
-            <div id="chat-messages"></div>
-            <form id="chat-form" class="flex p-2 border-t border-gray-300 dark:border-gray-600">
-                <input id="chat-input" class="input-field !rounded-r-none" placeholder="Say something..." autocomplete="off">
-                <button type="submit" class="btn btn-primary !rounded-l-none">Send</button>
-            </form>
-        </div>
-        <div id="chat-toggle">🗨️</div>
-    </div>
-
-    <script type="module">
+    <script type="text/babel" data-type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- Firebase Config ---
-        const firebaseConfig = {
-           apiKey: "AIzaSyCp8UFvV6eOVACbaLq7ylOjEZOBitUMkfc",
-           authDomain: "dongapolice-24f1c.firebaseapp.com",
-           projectId: "dongapolice-24f1c",
-           storageBucket: "dongapolice-24f1c.appspot.com",
-           messagingSenderId: "797826379293",
-           appId: "1:797826379293:web:92a7231a8891be6527e0f4"
-        };
-        const appId = 'donga-police-game'; 
-        
-        // --- DOM Elements ---
-        const screens = { home: document.getElementById('home-screen'), lobby: document.getElementById('lobby-screen'), reveal: document.getElementById('reveal-screen'), guessing: document.getElementById('guessing-screen'), result: document.getElementById('result-screen') };
-        const nameInput = document.getElementById('name-input');
-        const roomCodeInput = document.getElementById('room-code-input');
-        const authStatus = document.getElementById('auth-status');
-        const chit = document.getElementById('chit');
-        const chatContainer = document.getElementById('chat-container');
-        const chatWindow = document.getElementById('chat-window');
-        const chatToggle = document.getElementById('chat-toggle');
+        const { useState, useEffect, useCallback, useRef } = React;
 
-        // --- Game State ---
-        let db, auth, userId, username, currentGameId = null, gameUnsubscribe = null, currentGamedata = null;
-
-        // --- Sound Effects ---
-        let sounds;
-        const initSounds = () => {
-            sounds = {
-                flip: new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination(),
-                click: new Tone.PolySynth(Tone.Synth, { envelope: { attack: 0.005, decay: 0.1, sustain: 0, release: 0.1 } }).toDestination(),
-                win: new Tone.Synth({ oscillator: { type: 'triangle8' }, envelope: { attack: 0.01, decay: 0.4, sustain: 0.1, release: 0.4 } }).toDestination(),
-                lose: new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.01, decay: 0.8, sustain: 0, release: 0.4 } }).toDestination(),
-                message: new Tone.MembraneSynth({ pitchDecay: 0.008, octaves: 2, envelope: { attack: 0.0006, decay: 0.5, sustain: 0 } }).toDestination(),
-            };
-            sounds.message.volume.value = -10;
-        };
-        const playSound = (sound, note = 'C4', duration = '8n') => { if(sounds && Tone.context.state === 'running') sounds[sound].triggerAttackRelease(note, duration); };
-        
-        // --- UI & Screen Management ---
-        const showScreen = (screenName) => {
-            Object.values(screens).forEach(s => s.classList.remove('active'));
-            screens[screenName].classList.add('active');
-            chatContainer.style.display = (screenName !== 'home') ? 'flex' : 'none';
-        };
-
-        // --- Firebase Logic ---
-        const getGameRef = (roomCode) => doc(db, `artifacts/${appId}/public/data/games`, roomCode);
-        const initializeFirebase = async () => {
-            try {
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                onAuthStateChanged(auth, user => { if(user) userId = user.uid; authStatus.textContent = "Connected!"; });
-                await signInAnonymously(auth);
-            } catch (error) { console.error("Firebase Init Error:", error); authStatus.textContent = "Connection Error!"; }
-        };
-
-        const createRoom = async () => {
-            username = nameInput.value.trim();
-            if (!username) { alert("Please enter your name!"); return; }
-            const roomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-            currentGameId = roomCode;
-            const gameRef = getGameRef(roomCode);
-            await setDoc(gameRef, {
-                hostId: userId,
-                players: { [userId]: { name: username, score: 0 } },
-                chat: [],
-                gameState: 'lobby',
-            });
-            subscribeToGame(roomCode);
-        };
-
-        const joinRoom = async () => {
-            username = nameInput.value.trim();
-            if (!username) { alert("Please enter your name!"); return; }
-            const roomCode = roomCodeInput.value.toUpperCase();
-            if (!roomCode) { alert("Please enter a room code."); return; }
-            currentGameId = roomCode;
-            const gameRef = getGameRef(roomCode);
-            const gameSnap = await getDoc(gameRef);
-            if (!gameSnap.exists()) { alert("Room not found!"); return; }
-            if (Object.keys(gameSnap.data().players).length >= 10) { alert("Room is full!"); return; }
-            await updateDoc(gameRef, { [`players.${userId}`]: { name: username, score: 0 } });
-            subscribeToGame(roomCode);
-        };
-        
-        const subscribeToGame = (roomCode) => {
-            if (gameUnsubscribe) gameUnsubscribe();
-            const gameRef = getGameRef(roomCode);
-            gameUnsubscribe = onSnapshot(gameRef, (doc) => {
-                if (!doc.exists()) {
-                    alert("Game room closed.");
-                    showScreen('home');
-                    return;
+        // --- Helper Components & Hooks ---
+        const playSound = (() => {
+            let sounds;
+            return (sound, note = 'C4', duration = '8n') => {
+                if (!sounds) {
+                    sounds = {
+                        flip: new Tone.Synth({ oscillator: { type: 'sine' } }).toDestination(),
+                        click: new Tone.PolySynth(Tone.Synth).toDestination(),
+                        win: new Tone.Synth({ oscillator: { type: 'triangle8' } }).toDestination(),
+                        lose: new Tone.Synth({ oscillator: { type: 'sawtooth' } }).toDestination(),
+                        message: new Tone.MembraneSynth().toDestination(),
+                    };
                 }
-                currentGamedata = doc.data(); // Keep track of latest game data
-                handleGameState(currentGamedata);
+                if (Tone.context.state === 'running') sounds[sound].triggerAttackRelease(note, duration);
+            };
+        })();
+
+        const Confetti = ({ show }) => {
+            if (!show) return null;
+            const confettiPieces = Array.from({ length: 50 }, (_, i) => {
+                const style = {
+                    left: `${Math.random() * 100}%`,
+                    top: `${-20}%`,
+                    fontSize: `${1 + Math.random() * 1.5}rem`,
+                    animation: `fall ${2 + Math.random() * 2}s linear ${Math.random() * 2}s forwards`
+                };
+                return <div key={i} className="confetti" style={style}>{['🎉', '🎊', '✨', '🏆'][i % 4]}</div>;
             });
+
+            return <div className="absolute inset-0 pointer-events-none">{confettiPieces}</div>;
         };
-
-        // --- Game Flow & State Machine ---
-        const handleGameState = (gameData) => {
-            if (!gameData) { showScreen('home'); return; }
-            const { gameState, players, hostId, roles, result } = gameData;
-            const isHost = userId === hostId;
-            const myPlayer = players[userId];
-            if (!myPlayer) { /* Player not in game yet */ return; }
-
-            switch (gameState) {
-                case 'lobby':
-                    showScreen('lobby');
-                    document.getElementById('lobby-room-code').textContent = currentGameId;
-                    const playerListContainer = document.getElementById('lobby-player-list');
-                    playerListContainer.innerHTML = Object.values(players).map(p => `<div class="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg font-semibold">${p.name}</div>`).join('');
-                    const startGameBtn = document.getElementById('start-game-btn');
-                    if (isHost && Object.keys(players).length >= 4) {
-                        startGameBtn.style.display = 'block';
-                        document.getElementById('waiting-for-host-msg').textContent = `Ready to start with ${Object.keys(players).length} players!`;
-                    } else {
-                        startGameBtn.style.display = 'none';
-                        document.getElementById('waiting-for-host-msg').textContent = `Waiting for more players... (${Object.keys(players).length}/4 minimum)`;
-                    }
-                    break;
-                case 'reveal':
-                    showScreen('reveal');
-                    chit.classList.remove('is-flipped');
-                    document.getElementById('waiting-msg').classList.remove('opacity-100');
-                    const myRole = roles[userId];
-                    const [emoji, name] = myRole.split(' ');
-                    document.getElementById('chit-role-emoji').textContent = emoji;
-                    document.getElementById('chit-role-name').textContent = name;
-                    if (myPlayer.revealed) {
-                        chit.classList.add('is-flipped');
-                        document.getElementById('waiting-msg').classList.add('opacity-100');
-                    }
-                    if (Object.values(players).every(p => p.revealed)) {
-                        updateDoc(getGameRef(currentGameId), { gameState: 'guess' });
-                    }
-                    break;
-                case 'guess':
-                    showScreen('guessing');
-                    const policeId = Object.keys(roles).find(uid => roles[uid] === '👮 Police');
-                    document.getElementById('guess-prompt').textContent = userId === policeId ? "Your turn to guess!" : `Waiting for ${players[policeId].name} (Police)...`;
-                    const dialogues = ["Nuve donga ra! Naku telusu 🤨", "Arrest chesey time ochindhi! 🚨", "Evaru ആ donga? 🤔"];
-                    document.getElementById('police-dialogue').textContent = dialogues[Math.floor(Math.random() * dialogues.length)];
-                    const guessOptions = document.getElementById('guess-options');
-                    guessOptions.innerHTML = '';
-                    if (userId === policeId) {
-                        Object.entries(players).forEach(([uid, player]) => {
-                            if (uid !== policeId) {
-                                const btn = document.createElement('button');
-                                btn.className = 'btn btn-secondary';
-                                btn.textContent = player.name;
-                                btn.onclick = () => makeGuess(uid);
-                                guessOptions.appendChild(btn);
-                            }
-                        });
-                    }
-                    break;
-                case 'result':
-                    showScreen('result');
-                    const { winner, dialogue } = result;
-                    document.getElementById('result-title').textContent = winner;
-                    document.getElementById('result-dialogue').textContent = dialogue;
-                    // Update roles and scoreboard
-                    const allRolesDisplay = document.getElementById('all-roles-display');
-                    allRolesDisplay.innerHTML = `<h3 class="font-bold mb-2">Roles</h3>` + Object.keys(roles).map(uid => `<p>${players[uid].name}: ${roles[uid]}</p>`).join('');
-                    const scoreboardDisplay = document.getElementById('scoreboard');
-                    scoreboardDisplay.innerHTML = `<h3 class="font-bold mb-2">Scoreboard 🏆</h3>` + Object.keys(players).map(uid => `<p>${players[uid].name}: ${players[uid].score} wins</p>`).join('');
-                    
-                    if (winner.includes("Police") || winner.includes("Donga")) playConfetti();
-                    
-                    document.getElementById('play-again-btn').style.display = isHost ? 'block' : 'none';
-                    document.getElementById('waiting-for-rematch-msg').style.display = isHost ? 'none' : 'block';
-                    break;
-            }
-            updateChat(gameData.chat || []);
-        };
-        
-        const startGameFlow = async () => {
-            const gameRef = getGameRef(currentGameId);
-            const gameSnap = await getDoc(gameRef);
-            let { players } = gameSnap.data();
-            const playerIds = Object.keys(players);
-            
-            // Define roles
-            let baseRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani'];
-            while (baseRoles.length < playerIds.length) baseRoles.push('🧍‍♂️ Public');
-            
-            // Shuffle and assign roles
-            const shuffledRoles = baseRoles.sort(() => Math.random() - 0.5);
-            const roles = {};
-            playerIds.forEach((id, i) => roles[id] = shuffledRoles[i]);
-
-            // Reset revealed status
-            Object.keys(players).forEach(uid => players[uid].revealed = false);
-
-            await updateDoc(gameRef, { gameState: 'reveal', roles, players });
-        };
-        
-        const makeGuess = async (guessedId) => {
-            const gameRef = getGameRef(currentGameId);
-            const gameSnap = await getDoc(gameRef);
-            const { roles, players } = gameSnap.data();
-            const dongaId = Object.keys(roles).find(uid => roles[uid] === '🕵️‍♂️ Donga');
-            const policeId = Object.keys(roles).find(uid => roles[uid] === '👮 Police');
-            const policeWon = guessedId === dongaId;
-            
-            let result;
-            const updatedPlayers = { ...players };
-            if (policeWon) {
-                updatedPlayers[policeId].score += 1;
-                result = { winner: "Police Wins! 🎉", dialogue: "Donga dorikesadu ra babu! 😆" };
-                playSound('win', 'G5');
-            } else {
-                updatedPlayers[dongaId].score += 1;
-                result = { winner: "Donga Wins! 🎊", dialogue: "Mee guess wrong! 😂 Donga gelichadu!" };
-                playSound('lose', 'C3');
-            }
-            result.roles = roles;
-            
-            await updateDoc(gameRef, { gameState: 'result', result, players: updatedPlayers });
-        };
-
-        const playAgain = () => startGameFlow();
-
-        // --- Chat Logic ---
-        const updateChat = (messages) => {
-            const chatMessages = document.getElementById('chat-messages');
-            chatMessages.innerHTML = messages.map(msg => `<div class="message"><strong>${msg.name}:</strong> ${msg.text}</div>`).join('');
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        };
-
-        const sendChatMessage = async (e) => {
-            e.preventDefault();
-            const input = document.getElementById('chat-input');
-            const text = input.value.trim();
-            if (text) {
-                playSound('message', 'C5');
-                const newMessage = { name: username, text, timestamp: Date.now() };
-                await updateDoc(getGameRef(currentGameId), { chat: arrayUnion(newMessage) });
-                input.value = '';
-            }
-        };
-
-        // --- Confetti ---
-        function playConfetti() {
-            const container = document.getElementById('confetti-container');
-            container.innerHTML = ''; // Clear previous confetti
-            for (let i = 0; i < 50; i++) {
-                const confetti = document.createElement('div');
-                confetti.textContent = ['🎉', '🎊', '✨', '🏆'][Math.floor(Math.random() * 4)];
-                confetti.style.position = 'absolute';
-                confetti.style.left = `${Math.random() * 100}%`;
-                confetti.style.top = `${-20}%`;
-                confetti.style.fontSize = `${1 + Math.random() * 1.5}rem`;
-                confetti.style.animation = `fall ${2 + Math.random() * 2}s linear ${Math.random() * 2}s forwards`;
-                container.appendChild(confetti);
-            }
-            setTimeout(() => container.innerHTML = '', 4000);
-        }
         const style = document.createElement('style');
         style.textContent = `@keyframes fall { to { top: 120%; transform: rotate(${Math.random() * 720}deg); } }`;
         document.head.append(style);
+        
+        // --- Main App Component ---
+        function App() {
+            const [gameState, setGameState] = useState('home');
+            const [gameData, setGameData] = useState(null);
+            const [userId, setUserId] = useState(null);
+            const [username, setUsername] = useState('');
+            const [roomCode, setRoomCode] = useState('');
+            const [isMuted, setIsMuted] = useState(false);
+            const [isDarkMode, setIsDarkMode] = useState(true);
+            
+            // WebRTC refs
+            const localStreamRef = useRef();
+            const peerConnectionsRef = useRef(new Map());
+            
+            const dbRef = useRef();
+            const authRef = useRef();
 
-        // --- Event Listeners ---
-        const addClickListener = (id, handler) => {
-            document.getElementById(id).addEventListener('click', async () => {
-                if (Tone.context.state !== 'running') await Tone.start();
-                playSound('click', 'C5'); handler();
-            });
-        };
-        addClickListener('create-room-btn', createRoom);
-        addClickListener('join-room-btn', joinRoom);
-        addClickListener('start-game-btn', startGameFlow);
-        addClickListener('play-again-btn', playAgain);
-        document.getElementById('chit-scene').addEventListener('click', async () => {
-            if (Tone.context.state !== 'running') await Tone.start();
-            if (currentGamedata && currentGamedata.players[userId] && !currentGamedata.players[userId].revealed) {
-                playSound('flip', 'A5');
+            const appId = 'donga-police-game';
+            const getGameRef = (code) => doc(dbRef.current, `artifacts/${appId}/public/data/games`, code);
+            
+            useEffect(() => {
+                const initialize = async () => {
+                    const firebaseConfig = {
+                        apiKey: "AIzaSyCp8UFvV6eOVACbaLq7ylOjEZOBitUMkfc",
+                        authDomain: "dongapolice-24f1c.firebaseapp.com",
+                        projectId: "dongapolice-24f1c",
+                        storageBucket: "dongapolice-24f1c.appspot.com",
+                        messagingSenderId: "797826379293",
+                        appId: "1:797826379293:web:92a7231a8891be6527e0f4"
+                    };
+                    const app = initializeApp(firebaseConfig);
+                    dbRef.current = getFirestore(app);
+                    authRef.current = getAuth(app);
+                    await signInAnonymously(authRef.current);
+                    onAuthStateChanged(authRef.current, user => {
+                        if (user) setUserId(user.uid);
+                    });
+                };
+                initialize();
+                document.documentElement.classList.toggle('dark', isDarkMode);
+            }, []);
+
+            useEffect(() => {
+                document.documentElement.classList.toggle('dark', isDarkMode);
+            }, [isDarkMode]);
+
+            const subscribeToGame = useCallback((code) => {
+                const gameRef = getGameRef(code);
+                return onSnapshot(gameRef, (doc) => {
+                    if (doc.exists()) {
+                        const data = doc.data();
+                        setGameData(data);
+                        setGameState(data.gameState);
+                    } else {
+                        alert("Game room closed.");
+                        setGameState('home');
+                        setGameData(null);
+                    }
+                });
+            }, []);
+
+            const createRoom = async () => {
+                if (!username.trim()) { alert("Please enter your name!"); return; }
+                const newRoomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+                const gameRef = getGameRef(newRoomCode);
+                await setDoc(gameRef, {
+                    hostId: userId,
+                    players: { [userId]: { name: username, score: 0 } },
+                    chat: [],
+                    gameState: 'lobby',
+                    roomCode: newRoomCode,
+                });
+                const unsubscribe = subscribeToGame(newRoomCode);
+                return () => unsubscribe();
+            };
+
+            const joinRoom = async () => {
+                if (!username.trim()) { alert("Please enter your name!"); return; }
+                if (!roomCode.trim()) { alert("Please enter a room code."); return; }
+                const gameRef = getGameRef(roomCode);
+                const gameSnap = await getDoc(gameRef);
+                if (!gameSnap.exists()) { alert("Room not found!"); return; }
+                await updateDoc(gameRef, { [`players.${userId}`]: { name: username, score: 0 } });
+                const unsubscribe = subscribeToGame(roomCode);
+                return () => unsubscribe();
+            };
+            
+            const renderContent = () => {
+                switch (gameState) {
+                    case 'lobby': return <LobbyScreen gameData={gameData} userId={userId} getGameRef={getGameRef} />;
+                    case 'reveal': return <RevealScreen gameData={gameData} userId={userId} getGameRef={getGameRef} />;
+                    case 'guess': return <GuessScreen gameData={gameData} userId={userId} getGameRef={getGameRef} />;
+                    case 'result': return <ResultScreen gameData={gameData} userId={userId} getGameRef={getGameRef} />;
+                    default: return <HomeScreen setUsername={setUsername} setRoomCode={setRoomCode} createRoom={createRoom} joinRoom={joinRoom} />;
+                }
+            };
+
+            return (
+                <div className="w-screen h-screen flex justify-center items-center">
+                    <div id="dark-mode-toggle" onClick={() => setIsDarkMode(!isDarkMode)}>{isDarkMode ? '☀️' : '🌙'}</div>
+                    {renderContent()}
+                    {gameState !== 'home' && <Chat gameData={gameData} username={username} getGameRef={getGameRef} />}
+                </div>
+            );
+        }
+
+        const HomeScreen = ({ setUsername, setRoomCode, createRoom, joinRoom }) => {
+            const handleAction = async (action) => {
+                await Tone.start();
+                playSound('click');
+                action();
             }
-            await updateDoc(getGameRef(currentGameId), { [`players.${userId}.revealed`]: true });
-        });
-        document.getElementById('chat-form').addEventListener('submit', sendChatMessage);
-        chatToggle.addEventListener('click', () => chatWindow.style.display = (chatWindow.style.display === 'flex' ? 'none' : 'flex'));
-        addClickListener('copy-code-btn', () => {
-            navigator.clipboard.writeText(currentGameId);
-            alert("Room code copied!");
-        });
-        document.getElementById('dark-mode-toggle').addEventListener('click', () => {
-            document.documentElement.classList.toggle('dark');
-        });
+            return (
+                 <div className="w-full max-w-md bg-[var(--surface-main)] p-8 rounded-2xl shadow-xl space-y-6">
+                    <h1 className="text-4xl font-bold text-[var(--primary)]">Donga Police</h1>
+                    <p className="text-xl font-semibold -mt-4">Raja Rani Edition</p>
+                    <input onChange={e => setUsername(e.target.value)} type="text" className="input-field text-center" placeholder="Enter Your Name" />
+                    <div className="space-y-3">
+                        <button onClick={() => handleAction(createRoom)} className="btn btn-primary w-full">Create Room 👑</button>
+                        <div className="flex items-center gap-3">
+                            <input onChange={e => setRoomCode(e.target.value.toUpperCase())} type="text" className="input-field uppercase" placeholder="Room Code" />
+                            <button onClick={() => handleAction(joinRoom)} className="btn btn-secondary">Join</button>
+                        </div>
+                    </div>
+                    <p className="text-xs text-center text-gray-500 pt-4">A game by Krishnakanth</p>
+                </div>
+            );
+        }
+        
+        const LobbyScreen = ({ gameData, userId, getGameRef }) => {
+            const isHost = gameData.hostId === userId;
+            const canStart = Object.keys(gameData.players).length >= 4;
 
-        // --- Initial Setup ---
-        window.onload = () => { initSounds(); initializeFirebase(); };
+            const startGame = async () => {
+                playSound('click');
+                let { players } = gameData;
+                const playerIds = Object.keys(players);
+                let baseRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani'];
+                while (baseRoles.length < playerIds.length) baseRoles.push('🧍‍♂️ Public');
+                const shuffledRoles = baseRoles.sort(() => Math.random() - 0.5);
+                const roles = {};
+                playerIds.forEach((id, i) => roles[id] = shuffledRoles[i]);
+                Object.keys(players).forEach(uid => players[uid].revealed = false);
+                await updateDoc(getGameRef(gameData.roomCode), { gameState: 'reveal', roles, players });
+            };
+
+            return (
+                <div className="w-full max-w-md bg-[var(--surface-main)] p-8 rounded-2xl shadow-xl">
+                    <h2 className="text-3xl font-bold mb-2">Lobby</h2>
+                    <p>Room Code: <strong className="text-2xl text-[var(--primary)] tracking-widest">{gameData.roomCode}</strong></p>
+                    <div className="space-y-2 my-6 min-h-[150px] bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
+                        {Object.values(gameData.players).map(p => <div key={p.name} className="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg font-semibold">{p.name}</div>)}
+                    </div>
+                    {isHost && <button onClick={startGame} disabled={!canStart} className="btn btn-primary w-full text-xl">Start Game 🔥</button>}
+                    {!isHost && <p>Waiting for host to start...</p>}
+                    {!canStart && <p className="text-sm text-gray-500 mt-2">Need at least 4 players to start.</p>}
+                </div>
+            );
+        };
+        
+        const RevealScreen = ({ gameData, userId, getGameRef }) => {
+            const myPlayer = gameData.players[userId];
+            const myRole = gameData.roles[userId];
+            const [emoji, name] = myRole.split(' ');
+
+            const handleReveal = async () => {
+                if(myPlayer.revealed) return;
+                await Tone.start();
+                playSound('flip');
+                await updateDoc(getGameRef(gameData.roomCode), { [`players.${userId}.revealed`]: true });
+            };
+
+            return (
+                <div className="flex flex-col items-center">
+                    <h2 className="text-3xl font-bold mb-2">Your Secret Role Is...</h2>
+                    <p className="mb-6">Don't show anyone! 🤫</p>
+                    <div className="chit-scene" onClick={handleReveal}>
+                        <div className={`chit ${myPlayer.revealed ? 'is-flipped' : ''}`}>
+                            <div className="chit-face chit-front flex flex-col justify-center items-center"><div className="text-3xl">🎴</div><div className="font-bold text-xl mt-2">Click to Reveal</div></div>
+                            <div className="chit-face chit-back flex flex-col justify-center items-center"><div className="text-7xl">{emoji}</div><div className="text-3xl font-bold mt-2">{name}</div></div>
+                        </div>
+                    </div>
+                    {myPlayer.revealed && <p className="text-lg mt-8 opacity-100 transition-opacity">Waiting for others to see their roles...</p>}
+                </div>
+            );
+        };
+
+        const GuessScreen = ({ gameData, userId, getGameRef }) => {
+            const policeId = Object.keys(gameData.roles).find(id => gameData.roles[id] === '👮 Police');
+            const isPolice = userId === policeId;
+
+            const makeGuess = async (guessedId) => {
+                playSound('click');
+                const { roles, players } = gameData;
+                const dongaId = Object.keys(roles).find(id => roles[id] === '🕵️‍♂️ Donga');
+                const policeWon = guessedId === dongaId;
+
+                const pointsMap = { '👑 Raja': 1000, '👸 Rani': 800, '👮 Police': 500, '🕵️‍♂️ Donga': 0, '🧍‍♂️ Public': 100 };
+                const updatedPlayers = { ...players };
+
+                if (policeWon) {
+                    playSound('win');
+                    Object.keys(roles).forEach(uid => {
+                        if (roles[uid] !== '🕵️‍♂️ Donga') updatedPlayers[uid].score += pointsMap[roles[uid]] || 0;
+                    });
+                } else {
+                    playSound('lose');
+                    Object.keys(roles).forEach(uid => {
+                        if (uid !== policeId && roles[uid] !== '🕵️‍♂️ Donga') updatedPlayers[uid].score += pointsMap[roles[uid]] || 0;
+                    });
+                }
+                
+                const result = {
+                    winner: policeWon ? "Police Wins! 🎉" : "Donga Wins! �",
+                    dialogue: policeWon ? "Donga dorikesadu ra babu! 😆" : "Mee guess wrong! 😂 Donga gelichadu!",
+                };
+                
+                await updateDoc(getGameRef(gameData.roomCode), { gameState: 'result', result, players: updatedPlayers });
+            };
+
+            return (
+                 <div className="text-center w-full max-w-md">
+                    <h2 className="text-3xl font-bold">{isPolice ? "Your turn to guess!" : `Waiting for ${gameData.players[policeId].name} (Police)...`}</h2>
+                    <p className="text-lg italic bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 p-3 rounded-lg my-4">Nuve donga ra! Naku telusu 🤨</p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {isPolice && Object.entries(gameData.players).map(([uid, player]) => {
+                            if (uid !== policeId) return <button key={uid} onClick={() => makeGuess(uid)} className="btn btn-secondary">{player.name}</button>;
+                            return null;
+                        })}
+                    </div>
+                </div>
+            );
+        };
+        
+        const ResultScreen = ({ gameData, userId, getGameRef }) => {
+            const isHost = gameData.hostId === userId;
+            const { winner, dialogue } = gameData.result;
+
+            const playAgain = async () => {
+                playSound('click');
+                await startGameFlow();
+            };
+            
+            const startGameFlow = async () => {
+                let { players } = gameData;
+                const playerIds = Object.keys(players);
+                
+                let baseRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani'];
+                while (baseRoles.length < playerIds.length) baseRoles.push('🧍‍♂️ Public');
+                
+                const shuffledRoles = baseRoles.sort(() => Math.random() - 0.5);
+                const roles = {};
+                playerIds.forEach((id, i) => roles[id] = shuffledRoles[i]);
+                Object.keys(players).forEach(uid => players[uid].revealed = false);
+
+                await updateDoc(getGameRef(gameData.roomCode), { gameState: 'reveal', roles, players, result: null });
+            };
+
+            return (
+                <div className="w-full max-w-lg bg-[var(--surface-main)] p-8 rounded-2xl shadow-xl text-center relative overflow-hidden">
+                    <Confetti show={winner.includes('Wins')} />
+                    <h2 className="text-4xl font-bold mb-4">{winner}</h2>
+                    <p className="text-xl mb-6 font-semibold">{dialogue}</p>
+                    <div className="grid grid-cols-2 gap-4 my-4">
+                        <div className="space-y-2 text-left bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
+                            <h3 className="font-bold mb-2">Roles</h3>
+                            {Object.keys(gameData.roles).map(uid => <p key={uid}>{gameData.players[uid].name}: {gameData.roles[uid]}</p>)}
+                        </div>
+                        <div className="space-y-2 text-left bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
+                            <h3 className="font-bold mb-2">Scoreboard 🏆</h3>
+                            {Object.values(gameData.players).sort((a,b) => b.score - a.score).map(p => <p key={p.name}>{p.name}: {p.score} points</p>)}
+                        </div>
+                    </div>
+                    {isHost && <button onClick={playAgain} className="btn btn-primary w-full mt-4">Play Next Round 🔁</button>}
+                    {!isHost && <p>Waiting for host to start a new game...</p>}
+                </div>
+            );
+        };
+
+        const Chat = ({ gameData, username, getGameRef }) => {
+            const [chatInput, setChatInput] = useState('');
+            const [isOpen, setIsOpen] = useState(false);
+            const messagesEndRef = useRef(null);
+
+            useEffect(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            }, [gameData.chat]);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                if (!chatInput.trim()) return;
+                playSound('message');
+                await updateDoc(getGameRef(gameData.roomCode), { chat: arrayUnion({ name: username, text: chatInput }) });
+                setChatInput('');
+            };
+
+            return (
+                 <div id="chat-container">
+                    <div id="chat-window" style={{ display: isOpen ? 'flex' : 'none' }}>
+                        <div id="chat-messages">
+                            {gameData.chat?.map((msg, i) => <div key={i} className="message"><strong>{msg.name}:</strong> {msg.text}</div>)}
+                            <div ref={messagesEndRef} />
+                        </div>
+                        <form onSubmit={handleSubmit} id="chat-form" className="flex p-2 border-t border-gray-300 dark:border-gray-600">
+                            <input value={chatInput} onChange={e => setChatInput(e.target.value)} id="chat-input" className="input-field !rounded-r-none" placeholder="Say something..." autoComplete="off" />
+                            <button type="submit" className="btn btn-primary !rounded-l-none">Send</button>
+                        </form>
+                    </div>
+                    <div id="chat-toggle" onClick={() => setIsOpen(!isOpen)}>{isOpen ? '🔽' : '🗨️'}</div>
+                </div>
+            )
+        };
+        
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+
     </script>
 </body>
 </html>
+�
