@@ -125,25 +125,16 @@
         import { getFirestore, doc, getDoc, setDoc, updateDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Configuration ---
-        // IMPORTANT: To deploy this on your own site (like Netlify), you need your own Firebase project.
-        // 1. Go to https://console.firebase.google.com/ and create a new project.
-        // 2. In your project, go to Project Settings > General, scroll down to "Your apps", and click the Web icon (</>).
-        // 3. Register a new web app. Firebase will give you a `firebaseConfig` object.
-        // 4. In your project, go to Build > Authentication, click "Get started", go to the "Sign-in method" tab, and enable "Anonymous" sign-in.
-        // 5. In your project, go to Build > Firestore Database, create a database, and in the "Rules" tab, set the rules to allow reads and writes (for development, `allow read, write: if true;` is okay).
-        // 6. Replace the `firebaseConfig` variable below with the one you copied from your project.
-        
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
             ? JSON.parse(__firebase_config) 
             : {
-                // PASTE YOUR FIREBASE CONFIG OBJECT HERE
                apiKey: "AIzaSyCp8UFvV6eOVACbaLq7ylOjEZOBitUMkfc",
-        authDomain: "dongapolice-24f1c.firebaseapp.com",
-        projectId: "dongapolice-24f1c",
-        storageBucket: "dongapolice-24f1c.appspot.com",
-        messagingSenderId: "797826379293",
-        appId: "1:797826379293:web:92a7231a8891be6527e0f4",
-        measurementId: "G-XYBV7DFMHL"
+               authDomain: "dongapolice-24f1c.firebaseapp.com",
+               projectId: "dongapolice-24f1c",
+               storageBucket: "dongapolice-24f1c.appspot.com",
+               messagingSenderId: "797826379293",
+               appId: "1:797826379293:web:92a7231a8891be6527e0f4",
+               measurementId: "G-XYBV7DFMHL"
               };
 
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'donga-police-game';
@@ -168,8 +159,8 @@
 
         // --- INITIALIZATION ---
         const initializeFirebase = async () => {
-            // Basic check to see if config is still a placeholder
-            if (firebaseConfig.apiKey === "YOUR_API_KEY") {
+            // Basic check to see if config has been replaced
+            if (firebaseConfig.apiKey.startsWith("AIza") === false) { // A basic check for a real key
                 authStatus.textContent = "Firebase is not configured.";
                 authStatus.classList.add('text-red-500');
                 return;
@@ -196,6 +187,7 @@
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
                 authStatus.textContent = "Error connecting to server.";
+                authStatus.classList.add('text-red-500');
             }
         };
         
@@ -285,6 +277,10 @@
                     alert("Game has been deleted or does not exist.");
                     resetGame();
                 }
+            }, (error) => {
+                console.error("Firestore subscription error:", error);
+                authStatus.textContent = "Connection lost. Check Firestore rules.";
+                authStatus.classList.add('text-red-500');
             });
         };
         
