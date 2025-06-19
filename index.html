@@ -54,7 +54,7 @@
     <script type="text/babel" data-type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, arrayUnion, writeBatch, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, arrayUnion, writeBatch, deleteField, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const { useState, useEffect, useCallback, useRef, createContext, useContext } = React;
 
@@ -99,7 +99,7 @@
         
         // --- Translations Object ---
         const translations = {
-            en: { title: "Donga Police", subtitle: "Royal Chits Edition", enterName: "Enter Your Name", createRoom: "Create Room 👑", roomCode: "Room Code", join: "Join", lobby: "Lobby", roomCodeLabel: "Room Code:", playersJoined: "Players Joined:", startGame: "Start Game 🔥", waitingForHost: "Waiting for host to start...", need4Players: "Need at least 2 players to start.", yourRole: "Your Secret Role Is...", dontShow: "Don't show anyone! 🤫", clickToReveal: "Click to Reveal", waitingForOthers: "Waiting for others to reveal...", yourTurn: "Your turn to Guess!", waitingFor: "Waiting for", guessPrompt: (role) => `They must find the ${role === 'police' ? 'Donga 🕵️‍♂️' : 'Rani 👸'}`, yourGuessPrompt: (role) => `You must find the ${role === 'police' ? 'Donga 🕵️‍♂️' : 'Rani 👸'}`, gameOver: "Game Over!", guessBreakdown: "Guess Breakdown", policeGuessed: (pName, gName) => `Police (${pName}) guessed ${gName}.`, rajaGuessed: (pName, gName) => `Raja (${pName}) guessed ${gName}.`, guessCorrect: "Guess was Correct!", guessWrong: "Guess was Wrong!", theirRoleWas: (role) => `(Their role was ${role})`, finalRoles: "Final Roles", scoreboard: "Scoreboard �", playNextRound: "Play Next Round 🔁", waitingForHostNewGame: "Waiting for host to start a new game...", saySomething: "Say something...", send: "Send", exitGame: "Exit Game", langButton: "Language", activePlayers: (count) => `Active Players: ${count}`, waitingListTitle: "Still waiting for:", voiceChat: "Voice Chat", settings: "Settings", theme: "Theme", light: "Light", dark: "Dark", showScores: "Show Scores", audioControls: "Audio Controls", muteAll: "Mute All", unmuteAll: "Unmute All", score: "Score", winnerPopupTitle: "Round Winner!", close: "Close" },
+            en: { title: "Donga Police", subtitle: "Royal Chits Edition", enterName: "Enter Your Name", createRoom: "Create Room 👑", roomCode: "Room Code", join: "Join", lobby: "Lobby", roomCodeLabel: "Room Code:", playersJoined: "Players Joined:", startGame: "Start Game 🔥", waitingForHost: "Waiting for host to start...", need4Players: "Need at least 2 players to start.", yourRole: "Your Secret Role Is...", dontShow: "Don't show anyone! 🤫", clickToReveal: "Click to Reveal", waitingForOthers: "Waiting for others to reveal...", yourTurn: "Your turn to Guess!", waitingFor: "Waiting for", guessPrompt: (role) => `They must find the ${role === 'police' ? 'Donga 🕵️‍♂️' : 'Rani 👸'}`, yourGuessPrompt: (role) => `You must find the ${role === 'police' ? 'Donga 🕵️‍♂️' : 'Rani 👸'}`, gameOver: "Game Over!", guessBreakdown: "Guess Breakdown", policeGuessed: (pName, gName) => `Police (${pName}) guessed ${gName}.`, rajaGuessed: (pName, gName) => `Raja (${pName}) guessed ${gName}.`, guessCorrect: "Guess was Correct!", guessWrong: "Guess was Wrong!", theirRoleWas: (role) => `(Their role was ${role})`, finalRoles: "Final Roles", scoreboard: "Scoreboard ?", playNextRound: "Play Next Round 🔁", waitingForHostNewGame: "Waiting for host to start a new game...", saySomething: "Say something...", send: "Send", exitGame: "Exit Game", langButton: "Language", activePlayers: (count) => `Active Players: ${count}`, waitingListTitle: "Still waiting for:", voiceChat: "Voice Chat", settings: "Settings", theme: "Theme", light: "Light", dark: "Dark", showScores: "Show Scores", audioControls: "Audio Controls", muteAll: "Mute All", unmuteAll: "Unmute All", score: "Score", winnerPopupTitle: "Round Winner!", close: "Close" },
             te: { title: "దొంగ పోలీస్", subtitle: "రాయల్ చీటీల ఆట", enterName: "Mee Peru Raayandi", createRoom: "Kotha Aata Modalettu 👑", roomCode: "Gadi Sanke", join: "Kalisi Aadandi", lobby: "Vechiyundu Gadi", roomCodeLabel: "Gadi Sanke:", playersJoined: "Aade Vallu:", startGame: "Aata Modalettu Ra 🔥", waitingForHost: "Yajamani kosam vechi chustunnam...", need4Players: "Modalettadaniki iddaru kavali.", yourRole: "Mee Goppa Paathra...", dontShow: "Evariki cheppoddu! 🤫", clickToReveal: "Chit Tippu", waitingForOthers: "Andaru tippే దాక ఆగు...", yourTurn: "Mee Vantu Vachindi!", waitingFor: "Kosam aaguthunnam", guessPrompt: (role) => `${role === 'police' ? 'Donga ni 🕵️‍♂️' : 'Rani ni 👸'} pattukovali`, yourGuessPrompt: (role) => `Miru ${role === 'police' ? 'Donga ni 🕵️‍♂️' : 'Rani ni 👸'} pattukovali`, gameOver: "Aata Aipoindhi!", guessBreakdown: "Guess-ula Vivarana", policeGuessed: (pName, gName) => `Police (${pName}) anukunnadi ${gName} ni.`, rajaGuessed: (pName, gName) => `Raja (${pName}) anukunnadi ${gName} ni.`, guessCorrect: "Correct-ga Chepparu!", guessWrong: "Tappu Chepparu!", theirRoleWas: (role) => `(Vaalla paathra ${role})`, finalRoles: "Asalu Paathralu", scoreboard: "Markula Patti 🏆", playNextRound: "Malli Aadudama? 🔁", waitingForHostNewGame: "Yajamani kotha aata modalettali...", saySomething: "Edokati cheppu...", send: "Pampu", exitGame: "Inti ki Podaam", langButton: "Bhaasha", activePlayers: (count) => `Aadutunna Vallu: ${count}`, waitingListTitle: "Ee pillalu inka chit choopincha ledu 👀:", voiceChat: "Maatalu", settings: "Amarikalu", theme: "Theme", light: "Velugu", dark: "Cheekati", showScores: "Score-lu Chudu", audioControls: "Audio Niyantranalu", muteAll: "Andarini Mute Cheyi", unmuteAll: "Andarini Unmute Cheyi", score: "Markulu", winnerPopupTitle: "Gelichindi Eelle!", close: "Mooyi"},
             hi: { title: "डोंगा पुलिस", subtitle: "रॉयल चिट्स वाला खेल", enterName: "Apna Naam Daalo", createRoom: "Naya Khel Banao 👑", roomCode: "Kamra Code", join: "Shamil Ho", lobby: "Intezaar Ghar", roomCodeLabel: "Kamra Code:", playersJoined: "Khiladi Log:", startGame: "Khel Shuru Kar Bhai 🔥", waitingForHost: "Host ka intezaar hai...", need4Players: "Khelne ke liye 2 log chahiye.", yourRole: "Aapki Gupt Bhumika Hai...", dontShow: "Kisi ko mat dikhana! 🤫", clickToReveal: "Chit Palto", waitingForOthers: "Sab ke palatne ka intezar...", yourTurn: "Aapki Baari!", waitingFor: "Ka intezaar hai", guessPrompt: (role) => `Unhe ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, yourGuessPrompt: (role) => `Aapko ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, gameOver: "Khel Khatam!", guessBreakdown: "Guess ka Vivaran", policeGuessed: (pName, gName) => `Police (${pName}) ne ${gName} ko guess kiya.`, rajaGuessed: (pName, gName) => `Raja (${pName}) ne ${gName} ko guess kiya.`, guessCorrect: "Sahi Jawab!", guessWrong: "Galat Jawab!", theirRoleWas: (role) => `(Unki bhumika ${role} thi)`, finalRoles: "Asli Kirdaar", scoreboard: "Scoreboard 🏆", playNextRound: "Phir Se Khele? 🔁", waitingForHostNewGame: "Host ke naye game ka intezar...", saySomething: "Kuch bolo...", send: "Bhejo", exitGame: "Game Chhodo", langButton: "Bhasha", activePlayers: (count) => `Kul Khiladi: ${count}`, waitingListTitle: "Yeh log abhi tak chupaye baithe hain 🤫:", voiceChat: "Baat-Cheet", settings: "Settings", theme: "Theme", light: "Roshni", dark: "Andhera", showScores: "Score Dekho", audioControls: "Audio Controls", muteAll: "Sabko Mute Karo", unmuteAll: "Sabko Unmute Karo", score: "Ank", winnerPopupTitle: "Vijeta!", close: "Band Karo" }
         };
@@ -432,16 +432,35 @@
             const startGame = async () => {
                 playSound('click');
                 const playerIds = Object.keys(players);
-                let assignedRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani'];
-                let extraRoles = ['🧠 Mantri', '🤓 Batulu'];
-                let i = 0;
-                while (assignedRoles.length < playerIds.length) { assignedRoles.push(extraRoles[i % extraRoles.length]); i++; }
+                // Updated Roles List
+                let coreRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani'];
+                let extraRoles = ['🪖 General Commander', '🎖️ Commander', '🧠 Mantri', '🤓 Batulu'];
+                
+                let assignedRoles = [];
+                if (playerIds.length <= 4) {
+                    assignedRoles = coreRoles.slice(0, playerIds.length);
+                } else {
+                    assignedRoles = [...coreRoles];
+                    let extraIndex = 0;
+                    while(assignedRoles.length < playerIds.length) {
+                        assignedRoles.push(extraRoles[extraIndex % extraRoles.length]);
+                        extraIndex++;
+                    }
+                }
+
                 const shuffledRoles = assignedRoles.sort(() => Math.random() - 0.5);
                 const roles = {};
                 playerIds.forEach((id, idx) => roles[id] = shuffledRoles[idx]);
-                const resetPlayers = {...players};
-                Object.keys(resetPlayers).forEach(uid => { resetPlayers[uid].revealed = false });
-                await updateDoc(getGameRef(roomCode), { gameState: 'reveal', roles, players: resetPlayers });
+                
+                // Keep existing scores when starting a new round
+                const updates = {};
+                updates.gameState = 'reveal';
+                updates.roles = roles;
+                playerIds.forEach(id => {
+                    updates[`players.${id}.revealed`] = false;
+                });
+                
+                await updateDoc(getGameRef(roomCode), updates);
             };
 
             return (
@@ -450,7 +469,7 @@
                     <p>{t('roomCodeLabel')} <strong className="text-2xl text-[var(--primary)] tracking-widest">{roomCode}</strong></p>
                     <div className="space-y-2 my-6 min-h-[150px] bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
                         <h3 className="font-bold text-lg mb-2">{t('playersJoined')}</h3>
-                        {Object.values(players).map(p => <div key={p.name} className="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg font-semibold flex justify-between items-center"><span>{p.name}</span> <span className="text-green-500">✔</span></div>)}
+                        {Object.values(players).map(p => <div key={p.name} className="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg font-semibold flex justify-between items-center"><span>{p.name} (Score: {p.score})</span> <span className="text-green-500">✔</span></div>)}
                     </div>
                     {isHost && <button onClick={startGame} disabled={!canStart} className="btn bg-blue-600 text-white w-full text-xl">{t('startGame')}</button>}
                     {!isHost && <p>{t('waitingForHost')}</p>}
@@ -496,7 +515,7 @@
                     <div className="chit-scene" onClick={handleReveal}>
                         <div className={`chit ${myPlayer.revealed ? 'is-flipped' : ''}`}>
                             <div className="chit-face chit-front flex flex-col justify-center items-center"><div className="text-3xl">🎴</div><div className="font-bold text-xl mt-2">{t('clickToReveal')}</div></div>
-                            <div className="chit-face chit-back flex flex-col justify-center items-center"><div className="text-7xl">{emoji}</div><div className="text-3xl font-bold mt-2">{name}</div></div>
+                            <div className="chit-face chit-back flex flex-col justify-center items-center"><div className="text-7xl">{emoji}</div><div className="text-2xl font-bold mt-2">{name}</div></div>
                         </div>
                     </div>
                     {unrevealedPlayers.length > 0 ? (
@@ -520,30 +539,65 @@
             const currentGuesser = players[gameState === 'police_guess' ? policeId : rajaId];
             const prompt = isMyTurn ? t('yourGuessPrompt', gameState === 'police_guess' ? 'police' : 'raja') : t('guessPrompt', gameState === 'police_guess' ? 'police' : 'raja');
             const waitingText = `${t('waitingFor')} ${currentGuesser?.name || '...'}`;
+            
             const handleGuess = async (guessedId) => {
                 playSound('click');
                 const nextState = gameState === 'police_guess' ? 'raja_guess' : 'result';
                 const guessField = gameState === 'police_guess' ? 'policeGuess' : 'rajaGuess';
+                
                 if (nextState === 'result') {
                     const dongaId = findUidByRole(roles, '🕵️‍♂️ Donga');
                     const raniId = findUidByRole(roles, '👸 Rani');
                     const policeGuessedCorrectly = gameData.policeGuess === dongaId;
                     const rajaGuessedCorrectly = guessedId === raniId;
-                    const pointsMap = { '👑 Raja': 1000, '👸 Rani': 800, '👮 Police': 500, '🧠 Mantri': 600, '🤓 Batulu': 300 };
-                    const updatedPlayers = { ...players };
-                    if (policeGuessedCorrectly && updatedPlayers[policeId]) updatedPlayers[policeId].score += pointsMap['👮 Police'];
-                    if (rajaGuessedCorrectly && updatedPlayers[rajaId]) updatedPlayers[rajaId].score += pointsMap['👑 Raja'];
-                    Object.keys(roles).forEach(uid => { if (['👸 Rani', '🧠 Mantri', '🤓 Batulu'].includes(roles[uid]) && updatedPlayers[uid]) updatedPlayers[uid].score += pointsMap[roles[uid]]; });
+
+                    // Updated scoring logic
+                    const pointsMap = { 
+                        '🪖 General Commander': 1500, '🎖️ Commander': 1200, 
+                        '👑 Raja': 900, '👸 Rani': 800, '👮 Police': 500, 
+                        '🧠 Mantri': 600, '🤓 Batulu': 300, '🕵️‍♂️ Donga': 2000 
+                    };
+
+                    const scoreUpdates = {};
+                    
+                    if (policeGuessedCorrectly) {
+                         if (policeId) scoreUpdates[`players.${policeId}.score`] = increment(pointsMap['👮 Police']);
+                    } else {
+                         if (dongaId) scoreUpdates[`players.${dongaId}.score`] = increment(pointsMap['🕵️‍♂️ Donga']);
+                    }
+
+                    if (rajaGuessedCorrectly) {
+                        if (rajaId) scoreUpdates[`players.${rajaId}.score`] = increment(pointsMap['👑 Raja']);
+                        if (raniId) scoreUpdates[`players.${raniId}.score`] = increment(pointsMap['👸 Rani']);
+                    }
+                    
+                    Object.entries(roles).forEach(([uid, role]) => {
+                         if (['🪖 General Commander', '🎖️ Commander', '🧠 Mantri', '🤓 Batulu'].includes(role)) {
+                             scoreUpdates[`players.${uid}.score`] = increment(pointsMap[role]);
+                         }
+                    });
+
                     let winType, dialogue;
-                    if (policeGuessedCorrectly && rajaGuessedCorrectly) { winType = 'both_win'; dialogue = "Perfect teamwork! Police and Raja both won!"; } 
-                    else if (policeGuessedCorrectly) { winType = 'one_win'; dialogue = "Police found the Donga!"; } 
-                    else if (rajaGuessedCorrectly) { winType = 'one_win'; dialogue = "Raja found the Rani!"; } 
-                    else { winType = 'lose'; dialogue = "Total failure! Both guesses were wrong!"; }
-                    await updateDoc(getGameRef(roomCode), { gameState: 'result', players: updatedPlayers, result: { winType, dialogue, policeGuess: gameData.policeGuess, rajaGuess: guessedId, policeGuessCorrect: policeGuessedCorrectly, rajaGuessCorrect: rajaGuessedCorrectly } });
+                    if (policeGuessedCorrectly) { winType = 'one_win'; dialogue = "Police found the Donga!"; } 
+                    else { winType = 'lose'; dialogue = "Donga escaped!"; }
+                    
+                    await updateDoc(getGameRef(roomCode), { 
+                        ...scoreUpdates,
+                        gameState: 'result',
+                        result: { 
+                            winType, 
+                            dialogue, 
+                            policeGuess: gameData.policeGuess, 
+                            rajaGuess: guessedId,
+                            policeGuessCorrect: policeGuessedCorrectly, 
+                            rajaGuessCorrect: rajaGuessedCorrectly 
+                        }
+                    });
                 } else {
                      await updateDoc(getGameRef(roomCode), { gameState: nextState, [guessField]: guessedId });
                 }
             };
+
             return (
                 <div className="text-center w-full max-w-lg bg-[var(--surface-main)] p-8 rounded-2xl shadow-xl">
                     <h2 className="text-3xl font-bold">{isMyTurn ? t('yourTurn') : waitingText}</h2>
@@ -563,22 +617,23 @@
             if (!result || !roles || !players) return <div className="text-white">Loading results...</div>;
             
             const sortedPlayers = Object.values(players).sort((a,b) => b.score - a.score);
+            const topScore = sortedPlayers.length > 0 ? sortedPlayers[0].score : 0;
 
             const isHost = hostId === userId;
             const playAgain = async () => {
                 playSound('click');
-                const playerIds = Object.keys(players);
-                let assignedRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani'];
-                let extraRoles = ['🧠 Mantri', '🤓 Batulu'];
-                let i=0;
-                while(assignedRoles.length < playerIds.length) { assignedRoles.push(extraRoles[i++ % extraRoles.length]); }
-                const shuffledRoles = assignedRoles.sort(() => Math.random() - 0.5);
-                const newRoles = {};
-                playerIds.forEach((id, idx) => newRoles[id] = shuffledRoles[idx]);
-                const resetPlayers = {...players};
-                Object.keys(resetPlayers).forEach(uid => resetPlayers[uid].revealed = false);
-                await updateDoc(getGameRef(roomCode), { gameState: 'reveal', roles: newRoles, players: resetPlayers, result: null, policeGuess: null, rajaGuess: null });
+                const updates = {
+                    gameState: 'reveal',
+                    result: null,
+                    policeGuess: null,
+                    rajaGuess: null,
+                };
+                Object.keys(players).forEach(uid => {
+                    updates[`players.${uid}.revealed`] = false;
+                });
+                await updateDoc(getGameRef(roomCode), updates);
             };
+
             const policeUid = findUidByRole(roles, '👮 Police');
             const policeName = players[policeUid]?.name || '...';
             const rajaUid = findUidByRole(roles, '👑 Raja');
@@ -620,7 +675,7 @@
                         </div>
                         <div className="space-y-2 text-left bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
                             <h3 className="font-bold mb-2 text-lg">{t('scoreboard')}</h3>
-                            {sortedPlayers.map(p => <p key={p.name} className="text-sm"><strong>{p.name}:</strong> {p.score} pts</p>)}
+                            {sortedPlayers.map(p => <p key={p.name} className={`text-sm ${p.score === topScore && topScore > 0 ? 'font-bold text-yellow-400' : ''}`}><strong>{p.name}:</strong> {p.score} pts {p.score === topScore && topScore > 0 ? '👑' : ''}</p>)}
                         </div>
                     </div>
                     {isHost && <button onClick={playAgain} className="btn bg-blue-600 text-white w-full mt-4">{t('playNextRound')}</button>}
@@ -677,4 +732,3 @@
     </script>
 </body>
 </html>
-�
