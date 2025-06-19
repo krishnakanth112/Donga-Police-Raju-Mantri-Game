@@ -60,16 +60,6 @@
 
         const { useState, useEffect, useCallback, useRef, createContext, useContext } = React;
 
-        // --- Ad Trigger Logic ---
-        const AD_URL = 'https://toopsoug.net/4/9468874';
-        const handleAdTrigger = () => {
-            const adShown = sessionStorage.getItem('dongaPoliceAdShown');
-            if (!adShown) {
-                window.open(AD_URL, '_blank', 'noopener,noreferrer');
-                sessionStorage.setItem('dongaPoliceAdShown', 'true');
-            }
-        };
-
         // --- Sound Manager ---
         const playSound = (() => {
             let sounds;
@@ -161,6 +151,23 @@
             }, [isDarkMode]);
             
             useEffect(() => { localStorage.setItem('dongaPoliceLang', language); }, [language]);
+
+            // --- OnClick Ad Script Injection ---
+            useEffect(() => {
+                const adShown = sessionStorage.getItem('propellerAdShown');
+                if (!adShown) {
+                    const timer = setTimeout(() => {
+                        const script = document.createElement('script');
+                        script.dataset.cfasync = 'false';
+                        script.type = 'text/javascript';
+                        script.src = '//upgulpinon.com/1?z=1234567'; // Replace with your actual ad tag
+                        document.body.appendChild(script);
+                        sessionStorage.setItem('propellerAdShown', 'true');
+                    }, 15000); // 15-second delay
+
+                    return () => clearTimeout(timer);
+                }
+            }, []);
 
             // --- Agora Voice Chat Logic ---
             useEffect(() => {
