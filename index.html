@@ -27,21 +27,58 @@
         .btn { padding: 0.75rem 1.75rem; font-size: 1.1rem; font-weight: bold; border-radius: 0.75rem; cursor: pointer; transition: all 0.2s ease; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .chit-scene { perspective: 1000px; }
-        .chit { transform-style: preserve-3d; transition: transform 0.8s; }
-        .chit.is-flipped { transform: rotateY(180deg); }
-        .chit-face { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+        
+        /* Flip Card Animation Styles */
+        .chit-scene {
+            width: 220px;
+            height: 300px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+        .chit {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s;
+        }
+        .chit.is-flipped {
+            transform: rotateY(180deg);
+        }
+        .chit-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            border-radius: 1rem;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .chit-front {
+            background: linear-gradient(135deg, #4b5563, #1f2937);
+            color: white;
+        }
+        .chit-back {
+            background: linear-gradient(135deg, #fef08a, #eab308);
+            color: #422006;
+            transform: rotateY(180deg);
+        }
+        
         .confetti { position: absolute; animation-timing-function: linear; user-select: none; }
     </style>
 </head>
 <body>
     <div id="root"></div>
-    <div id="audio-container"></div>
 
     <script type="text/babel" data-type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, arrayUnion, collection, writeBatch, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const { useState, useEffect, useCallback, useRef } = React;
 
@@ -56,8 +93,6 @@
                         win: new Tone.Synth({ oscillator: { type: 'triangle8' } }).toDestination(),
                         lose: new Tone.Synth({ oscillator: { type: 'sawtooth' } }).toDestination(),
                         message: new Tone.MembraneSynth().toDestination(),
-                        ptt_on: new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.01, release: 0.1 } }).toDestination(),
-                        ptt_off: new Tone.Synth({ oscillator: { type: 'triangle' }, envelope: { attack: 0.01, release: 0.1 } }).toDestination(),
                     };
                 }
                 if (Tone.context.state === 'running') sounds[sound].triggerAttackRelease(note, duration);
@@ -68,7 +103,7 @@
         const Confetti = ({ type }) => {
             if (!type) return null;
             let symbols = [];
-            if (type === 'both_win') symbols = ['🎉', '🎊', '✨', '🏆'];
+            if (type === 'both_win') symbols = ['�', '🎊', '✨', '🏆'];
             if (type === 'one_win') symbols = ['🎆', '🎇', '✨'];
             if (type === 'lose') symbols = ['😢', '👎', '🎺'];
             
@@ -96,7 +131,6 @@
             const [isDarkMode, setIsDarkMode] = useState(true);
             
             const dbRef = useRef();
-            const authRef = useRef();
             let gameUnsubscribe = useRef(null);
             
             const appId = 'donga-police-game';
@@ -106,9 +140,9 @@
                 const firebaseConfig = { apiKey: "AIzaSyCp8UFvV6eOVACbaLq7ylOjEZOBitUMkfc", authDomain: "dongapolice-24f1c.firebaseapp.com", projectId: "dongapolice-24f1c", storageBucket: "dongapolice-24f1c.appspot.com", messagingSenderId: "797826379293", appId: "1:797826379293:web:92a7231a8891be6527e0f4" };
                 const app = initializeApp(firebaseConfig);
                 dbRef.current = getFirestore(app);
-                authRef.current = getAuth(app);
-                signInAnonymously(authRef.current).then(() => {
-                    onAuthStateChanged(authRef.current, user => { if (user) setUserId(user.uid); });
+                const auth = getAuth(app);
+                signInAnonymously(auth).then(() => {
+                    onAuthStateChanged(auth, user => { if (user) setUserId(user.uid); });
                 });
                 document.documentElement.classList.toggle('dark', isDarkMode);
             }, []);
@@ -136,7 +170,7 @@
                 const gameRef = getGameRef(newRoomCode);
                 await setDoc(gameRef, {
                     hostId: userId,
-                    players: { [userId]: { name: username, score: 0, isSpeaking: false } },
+                    players: { [userId]: { name: username, score: 0 } },
                     chat: [], gameState: 'lobby', roomCode: newRoomCode,
                 });
                 subscribeToGame(newRoomCode);
@@ -147,11 +181,11 @@
                 const gameRef = getGameRef(code);
                 const gameSnap = await getDoc(gameRef);
                 if (!gameSnap.exists()) { alert("Room not found!"); return; }
-                await updateDoc(gameRef, { [`players.${userId}`]: { name: username, score: 0, isSpeaking: false } });
+                await updateDoc(gameRef, { [`players.${userId}`]: { name: username, score: 0 } });
                 subscribeToGame(code);
             };
             
-            const props = { gameData, userId, getGameRef, db: dbRef.current };
+            const props = { gameData, userId, getGameRef };
 
             const renderContent = () => {
                 switch (gameState) {
@@ -200,13 +234,11 @@
                 playSound('click');
                 const { players, roomCode } = gameData;
                 const playerIds = Object.keys(players);
-                let baseRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani', '🧠 Mantri', '🤓 Batulu'];
                 let assignedRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani'];
                 let extraRoles = ['🧠 Mantri', '🤓 Batulu'];
                 let i = 0;
                 while (assignedRoles.length < playerIds.length) {
-                    assignedRoles.push(extraRoles[i % extraRoles.length]);
-                    i++;
+                    assignedRoles.push(extraRoles[i % extraRoles.length]); i++;
                 }
                 const shuffledRoles = assignedRoles.sort(() => Math.random() - 0.5);
                 const roles = {};
@@ -220,7 +252,7 @@
                     <h2 className="text-3xl font-bold mb-2">Lobby</h2>
                     <p>Room Code: <strong className="text-2xl text-[var(--primary)] tracking-widest">{gameData.roomCode}</strong></p>
                     <div className="space-y-2 my-6 min-h-[150px] bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
-                        {Object.values(gameData.players).map(p => <div key={p.name} className="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg font-semibold flex justify-between items-center"><span>{p.name}</span> <span className={`text-2xl transition-opacity duration-300 ${p.isSpeaking ? 'opacity-100' : 'opacity-25'}`}>🎙️</span></div>)}
+                        {Object.values(gameData.players).map(p => <div key={p.name} className="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg font-semibold flex justify-between items-center"><span>{p.name}</span></div>)}
                     </div>
                     {isHost && <button onClick={startGame} disabled={!canStart} className="btn bg-blue-600 text-white w-full text-xl">Start Game 🔥</button>}
                     {!isHost && <p>Waiting for host to start...</p>}
@@ -242,11 +274,8 @@
             };
             
             useEffect(() => {
-                const allRevealed = Object.values(gameData.players).every(p => p.revealed);
-                if (allRevealed) {
-                    setTimeout(() => {
-                         updateDoc(getGameRef(gameData.roomCode), { gameState: 'police_guess' });
-                    }, 1000);
+                if (Object.values(gameData.players).every(p => p.revealed)) {
+                    setTimeout(() => updateDoc(getGameRef(gameData.roomCode), { gameState: 'police_guess' }), 1000);
                 }
             }, [gameData.players]);
 
@@ -271,7 +300,7 @@
             const rajaId = Object.keys(roles).find(id => roles[id] === '👑 Raja');
 
             const isMyTurn = (gameState === 'police_guess' && userId === policeId) || (gameState === 'raja_guess' && userId === rajaId);
-            const currentGuesser = gameState === 'police_guess' ? players[policeId] : players[rajaId];
+            const currentGuesser = players[gameState === 'police_guess' ? policeId : rajaId];
             const prompt = gameState === 'police_guess' ? 'find the Donga 🕵️‍♂️' : 'find the Rani 👸';
 
             const handleGuess = async (guessedId) => {
@@ -280,25 +309,17 @@
                 const guessField = gameState === 'police_guess' ? 'policeGuess' : 'rajaGuess';
                 
                 if (nextState === 'result') {
-                    // This is the final guess, calculate results
                     const dongaId = Object.keys(roles).find(id => roles[id] === '🕵️‍♂️ Donga');
                     const raniId = Object.keys(roles).find(id => roles[id] === '👸 Rani');
-                    
                     const policeGuessedCorrectly = gameData.policeGuess === dongaId;
                     const rajaGuessedCorrectly = guessedId === raniId;
 
                     const pointsMap = { '👑 Raja': 1000, '👸 Rani': 800, '👮 Police': 500, '🧠 Mantri': 600, '🤓 Batulu': 300 };
                     const updatedPlayers = { ...players };
-
-                    // Award points based on correct guesses
                     if (policeGuessedCorrectly) updatedPlayers[policeId].score += pointsMap['👮 Police'];
                     if (rajaGuessedCorrectly) updatedPlayers[rajaId].score += pointsMap['👑 Raja'];
-                    
-                    // Award points to others
                     Object.keys(roles).forEach(uid => {
-                        if (['👸 Rani', '🧠 Mantri', '🤓 Batulu'].includes(roles[uid])) {
-                            updatedPlayers[uid].score += pointsMap[roles[uid]] || 0;
-                        }
+                        if (['👸 Rani', '🧠 Mantri', '🤓 Batulu'].includes(roles[uid])) updatedPlayers[uid].score += pointsMap[roles[uid]];
                     });
 
                     let winType, dialogue;
@@ -307,7 +328,6 @@
                     else { winType = 'lose'; dialogue = "Total failure! 😢 Both guesses wrong!"; playSound('lose'); }
                     
                     await updateDoc(getGameRef(gameData.roomCode), { gameState: 'result', players: updatedPlayers, result: { winType, dialogue, policeGuess: gameData.policeGuess, rajaGuess: guessedId } });
-
                 } else {
                      await updateDoc(getGameRef(gameData.roomCode), { gameState: nextState, [guessField]: guessedId });
                 }
@@ -334,7 +354,6 @@
             const playAgain = async () => {
                 playSound('click');
                 const playerIds = Object.keys(players);
-                let baseRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani', '🧠 Mantri', '🤓 Batulu'];
                 let assignedRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani'];
                 let extraRoles = ['🧠 Mantri', '🤓 Batulu'];
                 let i=0;
@@ -367,29 +386,11 @@
             );
         };
 
-        const Chat = ({ gameData, username, getGameRef, userId, db }) => {
+        const Chat = ({ gameData, username, getGameRef }) => {
             const [chatInput, setChatInput] = useState('');
             const [isOpen, setIsOpen] = useState(false);
-            const [isSpeaking, setIsSpeaking] = useState(false);
             const messagesEndRef = useRef(null);
-            const localStreamRef = useRef();
-            const peerConnections = useRef(new Map());
-            const audioContainerRef = useRef(null);
-            
-            // Effect to setup audio container
-             useEffect(() => {
-                audioContainerRef.current = document.getElementById('audio-container');
-            }, []);
 
-            const handlePtt = async (speaking) => {
-                playSound(speaking ? 'ptt_on' : 'ptt_off');
-                setIsSpeaking(speaking);
-                if (localStreamRef.current) {
-                    localStreamRef.current.getAudioTracks().forEach(track => track.enabled = speaking);
-                }
-                await updateDoc(getGameRef(gameData.roomCode), { [`players.${userId}.isSpeaking`]: speaking });
-            };
-            
             useEffect(() => {
                 messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
             }, [gameData.chat]);
@@ -416,11 +417,6 @@
                             </form>
                         </div>
                         <div className="flex items-center gap-3">
-                           <button 
-                             className={`w-16 h-16 rounded-full text-3xl flex items-center justify-center text-white transition-colors ${isSpeaking ? 'bg-red-500' : 'bg-green-500'}`}
-                             onMouseDown={() => handlePtt(true)} onMouseUp={() => handlePtt(false)}
-                             onTouchStart={() => handlePtt(true)} onTouchEnd={() => handlePtt(false)}
-                           >🎙️</button>
                            <div id="chat-toggle" className="w-16 h-16 rounded-full text-3xl flex items-center justify-center bg-blue-600 text-white cursor-pointer" onClick={() => setIsOpen(!isOpen)}>{isOpen ? '🔽' : '🗨️'}</div>
                         </div>
                     </div>
@@ -434,3 +430,4 @@
     </script>
 </body>
 </html>
+�
