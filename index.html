@@ -194,6 +194,14 @@
             }
             return name;
         };
+
+        // --- UI & NAVIGATION ---
+        const showScreen = (screenName) => {
+            Object.values(screens).forEach(screen => screen.classList.add('hidden'));
+            if(screens[screenName]) {
+                screens[screenName].classList.remove('hidden');
+            }
+        };
         
         // --- Game Flow ---
         const createGame = async () => {
@@ -252,21 +260,26 @@
         };
 
         const startGame = async (gameData) => {
-            const roles = ['Raju', 'Mantri', 'Donga', 'Police'];
-            const shuffledRoles = roles.sort(() => 0.5 - Math.random());
-            const updatedPlayers = { ...gameData.players };
-            let policeId, dongaId;
-            gameData.playerOrder.forEach((pid, i) => {
-                updatedPlayers[pid].role = shuffledRoles[i];
-                if (shuffledRoles[i] === 'Police') policeId = pid;
-                if (shuffledRoles[i] === 'Donga') dongaId = pid;
-            });
-            await updateDoc(doc(db, `artifacts/${appId}/public/data/games`, currentGameId), {
-                players: updatedPlayers,
-                gameState: 'waiting_for_guess',
-                round: gameData.round + 1,
-                policeId, dongaId, guessResult: null
-            });
+            try {
+                const roles = ['Raju', 'Mantri', 'Donga', 'Police'];
+                const shuffledRoles = roles.sort(() => 0.5 - Math.random());
+                const updatedPlayers = { ...gameData.players };
+                let policeId, dongaId;
+                gameData.playerOrder.forEach((pid, i) => {
+                    updatedPlayers[pid].role = shuffledRoles[i];
+                    if (shuffledRoles[i] === 'Police') policeId = pid;
+                    if (shuffledRoles[i] === 'Donga') dongaId = pid;
+                });
+                await updateDoc(doc(db, `artifacts/${appId}/public/data/games`, currentGameId), {
+                    players: updatedPlayers,
+                    gameState: 'waiting_for_guess',
+                    round: gameData.round + 1,
+                    policeId, dongaId, guessResult: null
+                });
+            } catch(error) {
+                console.error("Error starting game:", error);
+                alert("Could not start the next round.");
+            }
         };
 
         const makeGuess = async (guessedPlayerId) => {
@@ -299,14 +312,18 @@
         };
         
         const showRoles = async () => await updateDoc(doc(db, `artifacts/${appId}/public/data/games`, currentGameId), { gameState: 'round_over' });
+        
         const playAgain = async () => {
             const gameSnap = await getDoc(doc(db, `artifacts/${appId}/public/data/games`, currentGameId));
-            if(gameSnap.exists()) startGame(gameSnap.data());
-        }
+            if(gameSnap.exists()) {
+                startGame(gameSnap.data());
+            }
+        };
 
         // --- UI Updates ---
         const updateUI = (gameData) => {
             if (gameData.gameState === 'lobby') {
+                showScreen('lobby');
                 document.getElementById('lobby-game-id').textContent = gameData.gameId;
                 const playerList = document.getElementById('player-list');
                 playerList.innerHTML = '';
@@ -325,8 +342,8 @@
             const me = gameData.players[userId];
             if (!me) return;
             const { gameState, guessResult, players, playerOrder, policeId, round } = gameData;
-            const isPolice = me.role === 'Police';
             const isHost = playerOrder[0] === userId;
+            const isPolice = me.role === 'Police';
 
             document.getElementById('game-room-id').textContent = gameData.gameId;
             document.getElementById('game-round').textContent = round;
@@ -334,7 +351,7 @@
             // My Chit
             const myChitCard = document.getElementById('my-chit-card');
             const myChitBack = document.getElementById('my-chit-back');
-            const roleEmojis = { 'Raju': '👑', 'Mantri': '👸', 'Donga': '👺', 'Police': '👮‍♂️' };
+            const roleEmojis = { 'Raju': '👑', 'Mantri': '�', 'Donga': '👺', 'Police': '👮‍♂️' };
             const roleColors = { 'Raju': 'bg-amber-400', 'Mantri': 'bg-fuchsia-400', 'Donga': 'bg-rose-500', 'Police': 'bg-sky-500' };
             myChitBack.innerHTML = `<span class="text-4xl">${roleEmojis[me.role]}</span><p class="font-bold text-xl mt-1">${me.role}</p>`;
             myChitBack.className = `card-back w-full h-full p-4 rounded-lg flex flex-col items-center justify-center shadow-lg text-white ${roleColors[me.role]}`;
@@ -370,7 +387,9 @@
             // Scoreboard
             const scoresList = document.getElementById('scores-list');
             scoresList.innerHTML = '';
-            playerOrder.sort((a, b) => players[b].score - players[a].score).forEach(pid => {
+            // FIX: Create a copy of the array before sorting to avoid mutating the original
+            const sortedPlayerOrder = [...playerOrder].sort((a, b) => players[b].score - players[a].score);
+            sortedPlayerOrder.forEach(pid => {
                 scoresList.innerHTML += `<div class="flex justify-between items-center text-sm p-2 rounded-md ${pid === userId ? 'bg-teal-50' : ''}"><span class="font-semibold">${players[pid].name} ${pid === userId ? '(You)' : ''}</span><span class="font-bold text-teal-600">${players[pid].score} pts</span></div>`;
             });
         };
@@ -429,3 +448,4 @@
     </script>
 </body>
 </html>
+�
