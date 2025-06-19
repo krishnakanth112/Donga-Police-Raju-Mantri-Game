@@ -54,9 +54,9 @@
     <script type="text/babel" data-type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, arrayUnion, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, arrayUnion, writeBatch, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const { useState, useEffect, useCallback, useRef } = React;
+        const { useState, useEffect, useCallback, useRef, createContext, useContext } = React;
 
         // --- Sound Manager ---
         const playSound = (() => {
@@ -78,8 +78,7 @@
         // --- UI Components ---
         const Confetti = ({ type }) => {
             if (!type) return null;
-            let symbols = [];
-            if (type === 'both_win' || type === 'one_win') symbols = ['🎉', '🎊', '✨', '🏆', '🥳'];
+            let symbols = ['🎉', '🎊', '✨', '🏆', '🥳'];
             if (type === 'lose') symbols = ['😢', '👎', '☠️'];
             
             const confettiPieces = Array.from({ length: 50 }, (_, i) => {
@@ -100,9 +99,9 @@
         
         // --- Translations Object ---
         const translations = {
-            en: { title: "Donga Police", subtitle: "Royal Chits Edition", enterName: "Enter Your Name", createRoom: "Create Room 👑", roomCode: "Room Code", join: "Join", lobby: "Lobby", roomCodeLabel: "Room Code:", playersJoined: "Players Joined:", startGame: "Start Game 🔥", waitingForHost: "Waiting for host to start...", need4Players: "Need at least 2 players to start.", yourRole: "Your Secret Role Is...", dontShow: "Don't show anyone! 🤫", clickToReveal: "Click to Reveal", waitingForOthers: "Waiting for others to reveal...", yourTurn: "Your turn to Guess!", waitingFor: "Waiting for", guessPrompt: (role) => `They must find the ${role === 'police' ? 'Donga 🕵️‍♂️' : 'Rani 👸'}`, yourGuessPrompt: (role) => `You must find the ${role === 'police' ? 'Donga 🕵️‍♂️' : 'Rani 👸'}`, gameOver: "Game Over!", guessBreakdown: "Guess Breakdown", policeGuessed: (pName, gName) => `Police (${pName}) guessed ${gName}.`, rajaGuessed: (pName, gName) => `Raja (${pName}) guessed ${gName}.`, guessCorrect: "Guess was Correct!", guessWrong: "Guess was Wrong!", theirRoleWas: (role) => `(Their role was ${role})`, finalRoles: "Final Roles", scoreboard: "Scoreboard 🏆", playNextRound: "Play Next Round 🔁", waitingForHostNewGame: "Waiting for host to start a new game...", saySomething: "Say something...", send: "Send", exitGame: "🚪", langButton: "Language", activePlayers: (count) => `Active Players: ${count}`, waitingListTitle: "Still waiting for:", voiceChat: "Voice Chat", winnerPopupTitle: "Round Winner!", close: "Close", score: "Score" },
-            te: { title: "దొంగ పోలీస్", subtitle: "రాయల్ చీటీల ఆట", enterName: "Mee Peru Raayandi", createRoom: "Kotha Aata Modalettu 👑", roomCode: "Gadi Sanke", join: "Kalisi Aadandi", lobby: "Vechiyundu Gadi", roomCodeLabel: "Gadi Sanke:", playersJoined: "Aade Vallu:", startGame: "Aata Modalettu Ra 🔥", waitingForHost: "Yajamani kosam vechi chustunnam...", need4Players: "Modalettadaniki iddaru kavali.", yourRole: "Mee Goppa Paathra...", dontShow: "Evariki cheppoddu! 🤫", clickToReveal: "Chit Tippu", waitingForOthers: "Andaru tippే దాక ఆగు...", yourTurn: "Mee Vantu Vachindi!", waitingFor: "Kosam aaguthunnam", guessPrompt: (role) => `${role === 'police' ? 'Donga ni 🕵️‍♂️' : 'Rani ni 👸'} pattukovali`, yourGuessPrompt: (role) => `Miru ${role === 'police' ? 'Donga ni 🕵️‍♂️' : 'Rani ni 👸'} pattukovali`, gameOver: "Aata Aipoindhi!", guessBreakdown: "Guess-ula Vivarana", policeGuessed: (pName, gName) => `Police (${pName}) anukunnadi ${gName} ni.`, rajaGuessed: (pName, gName) => `Raja (${pName}) anukunnadi ${gName} ni.`, guessCorrect: "Correct-ga Chepparu!", guessWrong: "Tappu Chepparu!", theirRoleWas: (role) => `(Vaalla paathra ${role})`, finalRoles: "Asalu Paathralu", scoreboard: "Markula Patti 🏆", playNextRound: "Malli Aadudama? 🔁", waitingForHostNewGame: "Yajamani kotha aata modalettali...", saySomething: "Edokati cheppu...", send: "Pampu", exitGame: "🚪", langButton: "Bhaasha", activePlayers: (count) => `Aadutunna Vallu: ${count}`, waitingListTitle: "Ee pillalu inka chit choopincha ledu 👀:", voiceChat: "Maatalu", winnerPopupTitle: "Gelichindi Eelle!", close: "Mooyi", score: "Markulu"},
-            hi: { title: "डोंगा पुलिस", subtitle: "रॉयल चिट्स वाला खेल", enterName: "Apna Naam Daalo", createRoom: "Naya Khel Banao �", roomCode: "Kamra Code", join: "Shamil Ho", lobby: "Intezaar Ghar", roomCodeLabel: "Kamra Code:", playersJoined: "Khiladi Log:", startGame: "Khel Shuru Kar Bhai 🔥", waitingForHost: "Host ka intezaar hai...", need4Players: "Khelne ke liye 2 log chahiye.", yourRole: "Aapki Gupt Bhumika Hai...", dontShow: "Kisi ko mat dikhana! 🤫", clickToReveal: "Chit Palto", waitingForOthers: "Sab ke palatne ka intezar...", yourTurn: "Aapki Baari!", waitingFor: "Ka intezaar hai", guessPrompt: (role) => `Unhe ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, yourGuessPrompt: (role) => `Aapko ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, gameOver: "Khel Khatam!", guessBreakdown: "Guess ka Vivaran", policeGuessed: (pName, gName) => `Police (${pName}) ne ${gName} ko guess kiya.`, rajaGuessed: (pName, gName) => `Raja (${pName}) ne ${gName} ko guess kiya.`, guessCorrect: "Sahi Jawab!", guessWrong: "Galat Jawab!", theirRoleWas: (role) => `(Unki bhumika ${role} thi)`, finalRoles: "Asli Kirdaar", scoreboard: "Scoreboard 🏆", playNextRound: "Phir Se Khele? 🔁", waitingForHostNewGame: "Host ke naye game ka intezar...", saySomething: "Kuch bolo...", send: "Bhejo", exitGame: "🚪", langButton: "Bhasha", activePlayers: (count) => `Kul Khiladi: ${count}`, waitingListTitle: "Yeh log abhi tak chupaye baithe hain 🤫:", voiceChat: "Baat-Cheet", winnerPopupTitle: "Vijeta!", close: "Band Karo", score: "Ank" }
+            en: { title: "Donga Police", subtitle: "Royal Chits Edition", enterName: "Enter Your Name", createRoom: "Create Room 👑", roomCode: "Room Code", join: "Join", lobby: "Lobby", roomCodeLabel: "Room Code:", playersJoined: "Players Joined:", startGame: "Start Game 🔥", waitingForHost: "Waiting for host to start...", need4Players: "Need at least 2 players to start.", yourRole: "Your Secret Role Is...", dontShow: "Don't show anyone! 🤫", clickToReveal: "Click to Reveal", waitingForOthers: "Waiting for others to reveal...", yourTurn: "Your turn to Guess!", waitingFor: "Waiting for", guessPrompt: (role) => `They must find the ${role === 'police' ? 'Donga 🕵️‍♂️' : 'Rani 👸'}`, yourGuessPrompt: (role) => `You must find the ${role === 'police' ? 'Donga 🕵️‍♂️' : 'Rani 👸'}`, gameOver: "Game Over!", guessBreakdown: "Guess Breakdown", policeGuessed: (pName, gName) => `Police (${pName}) guessed ${gName}.`, rajaGuessed: (pName, gName) => `Raja (${pName}) guessed ${gName}.`, guessCorrect: "Guess was Correct!", guessWrong: "Guess was Wrong!", theirRoleWas: (role) => `(Their role was ${role})`, finalRoles: "Final Roles", scoreboard: "Scoreboard �", playNextRound: "Play Next Round 🔁", waitingForHostNewGame: "Waiting for host to start a new game...", saySomething: "Say something...", send: "Send", exitGame: "Exit Game", langButton: "Language", activePlayers: (count) => `Active Players: ${count}`, waitingListTitle: "Still waiting for:", voiceChat: "Voice Chat", settings: "Settings", theme: "Theme", light: "Light", dark: "Dark", showScores: "Show Scores", audioControls: "Audio Controls", muteAll: "Mute All", unmuteAll: "Unmute All", score: "Score", winnerPopupTitle: "Round Winner!", close: "Close" },
+            te: { title: "దొంగ పోలీస్", subtitle: "రాయల్ చీటీల ఆట", enterName: "Mee Peru Raayandi", createRoom: "Kotha Aata Modalettu 👑", roomCode: "Gadi Sanke", join: "Kalisi Aadandi", lobby: "Vechiyundu Gadi", roomCodeLabel: "Gadi Sanke:", playersJoined: "Aade Vallu:", startGame: "Aata Modalettu Ra 🔥", waitingForHost: "Yajamani kosam vechi chustunnam...", need4Players: "Modalettadaniki iddaru kavali.", yourRole: "Mee Goppa Paathra...", dontShow: "Evariki cheppoddu! 🤫", clickToReveal: "Chit Tippu", waitingForOthers: "Andaru tippే దాక ఆగు...", yourTurn: "Mee Vantu Vachindi!", waitingFor: "Kosam aaguthunnam", guessPrompt: (role) => `${role === 'police' ? 'Donga ni 🕵️‍♂️' : 'Rani ni 👸'} pattukovali`, yourGuessPrompt: (role) => `Miru ${role === 'police' ? 'Donga ni 🕵️‍♂️' : 'Rani ni 👸'} pattukovali`, gameOver: "Aata Aipoindhi!", guessBreakdown: "Guess-ula Vivarana", policeGuessed: (pName, gName) => `Police (${pName}) anukunnadi ${gName} ni.`, rajaGuessed: (pName, gName) => `Raja (${pName}) anukunnadi ${gName} ni.`, guessCorrect: "Correct-ga Chepparu!", guessWrong: "Tappu Chepparu!", theirRoleWas: (role) => `(Vaalla paathra ${role})`, finalRoles: "Asalu Paathralu", scoreboard: "Markula Patti 🏆", playNextRound: "Malli Aadudama? 🔁", waitingForHostNewGame: "Yajamani kotha aata modalettali...", saySomething: "Edokati cheppu...", send: "Pampu", exitGame: "Inti ki Podaam", langButton: "Bhaasha", activePlayers: (count) => `Aadutunna Vallu: ${count}`, waitingListTitle: "Ee pillalu inka chit choopincha ledu 👀:", voiceChat: "Maatalu", settings: "Amarikalu", theme: "Theme", light: "Velugu", dark: "Cheekati", showScores: "Score-lu Chudu", audioControls: "Audio Niyantranalu", muteAll: "Andarini Mute Cheyi", unmuteAll: "Andarini Unmute Cheyi", score: "Markulu", winnerPopupTitle: "Gelichindi Eelle!", close: "Mooyi"},
+            hi: { title: "डोंगा पुलिस", subtitle: "रॉयल चिट्स वाला खेल", enterName: "Apna Naam Daalo", createRoom: "Naya Khel Banao 👑", roomCode: "Kamra Code", join: "Shamil Ho", lobby: "Intezaar Ghar", roomCodeLabel: "Kamra Code:", playersJoined: "Khiladi Log:", startGame: "Khel Shuru Kar Bhai 🔥", waitingForHost: "Host ka intezaar hai...", need4Players: "Khelne ke liye 2 log chahiye.", yourRole: "Aapki Gupt Bhumika Hai...", dontShow: "Kisi ko mat dikhana! 🤫", clickToReveal: "Chit Palto", waitingForOthers: "Sab ke palatne ka intezar...", yourTurn: "Aapki Baari!", waitingFor: "Ka intezaar hai", guessPrompt: (role) => `Unhe ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, yourGuessPrompt: (role) => `Aapko ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, gameOver: "Khel Khatam!", guessBreakdown: "Guess ka Vivaran", policeGuessed: (pName, gName) => `Police (${pName}) ne ${gName} ko guess kiya.`, rajaGuessed: (pName, gName) => `Raja (${pName}) ne ${gName} ko guess kiya.`, guessCorrect: "Sahi Jawab!", guessWrong: "Galat Jawab!", theirRoleWas: (role) => `(Unki bhumika ${role} thi)`, finalRoles: "Asli Kirdaar", scoreboard: "Scoreboard 🏆", playNextRound: "Phir Se Khele? 🔁", waitingForHostNewGame: "Host ke naye game ka intezar...", saySomething: "Kuch bolo...", send: "Bhejo", exitGame: "Game Chhodo", langButton: "Bhasha", activePlayers: (count) => `Kul Khiladi: ${count}`, waitingListTitle: "Yeh log abhi tak chupaye baithe hain 🤫:", voiceChat: "Baat-Cheet", settings: "Settings", theme: "Theme", light: "Roshni", dark: "Andhera", showScores: "Score Dekho", audioControls: "Audio Controls", muteAll: "Sabko Mute Karo", unmuteAll: "Sabko Unmute Karo", score: "Ank", winnerPopupTitle: "Vijeta!", close: "Band Karo" }
         };
 
         // --- Main App Component ---
@@ -111,14 +110,24 @@
             const [gameData, setGameData] = useState(null);
             const [userId, setUserId] = useState(null);
             const [username, setUsername] = useState('');
-            const [isDarkMode, setIsDarkMode] = useState(true);
+            const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('dongaPoliceTheme') === 'dark');
             const [language, setLanguage] = useState(localStorage.getItem('dongaPoliceLang') || 'en');
             const [isFirebaseReady, setIsFirebaseReady] = useState(false);
+            const [isSettingsOpen, setIsSettingsOpen] = useState(false);
             
+            // --- Voice Chat State ---
+            const agoraClient = useRef(null);
+            const localAudioTrack = useRef(null);
+            const [remoteUsers, setRemoteUsers] = useState([]);
+            const [isMicMuted, setIsMicMuted] = useState(false);
+            const [activeSpeakerUid, setActiveSpeakerUid] = useState(null);
+            const [playerMuteStates, setPlayerMuteStates] = useState({});
+
             const dbRef = useRef();
             const gameUnsubscribe = useRef(null);
             
             const appId = 'donga-police-game';
+            const agoraAppId = '1e4b8677cbf34cf59f8850d9c4485cad';
             const getGameRef = (code) => doc(dbRef.current, `artifacts/${appId}/public/data/games`, code);
             
             useEffect(() => {
@@ -128,18 +137,97 @@
                 const auth = getAuth(app);
                 signInAnonymously(auth).then(() => {
                     onAuthStateChanged(auth, user => { 
-                        if (user) {
-                            setUserId(user.uid); 
-                        }
+                        if (user) setUserId(user.uid); 
                         setIsFirebaseReady(true);
                     });
                 });
-                document.documentElement.classList.toggle('dark', isDarkMode);
             }, []);
 
-            useEffect(() => { document.documentElement.classList.toggle('dark', isDarkMode); }, [isDarkMode]);
+            useEffect(() => {
+                document.documentElement.classList.toggle('dark', isDarkMode);
+                localStorage.setItem('dongaPoliceTheme', isDarkMode ? 'dark' : 'light');
+            }, [isDarkMode]);
             
             useEffect(() => { localStorage.setItem('dongaPoliceLang', language); }, [language]);
+
+            // --- Agora Voice Chat Logic ---
+            useEffect(() => {
+                if (gameState === 'home' || !gameData?.roomCode || !userId) {
+                     if (agoraClient.current) {
+                        agoraClient.current.leave();
+                        agoraClient.current = null;
+                        localAudioTrack.current?.close();
+                        localAudioTrack.current = null;
+                        setRemoteUsers([]);
+                    }
+                    return;
+                }
+
+                let isMounted = true;
+                
+                const initAgora = async () => {
+                    if (!window.AgoraRTC) {
+                         if(isMounted) setTimeout(initAgora, 200);
+                         return;
+                    }
+
+                    const client = window.AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+                    agoraClient.current = client;
+
+                    client.on("user-published", async (user, mediaType) => {
+                        await client.subscribe(user, mediaType);
+                        if (mediaType === "audio") user.audioTrack.play();
+                        if(isMounted) setRemoteUsers(prev => [...prev.filter(u => u.uid !== user.uid), user]);
+                    });
+                    client.on("user-unpublished", (user) => {
+                        if(isMounted) setRemoteUsers(prev => prev.filter(u => u.uid !== user.uid));
+                    });
+                     client.on("user-left", (user) => {
+                        if(isMounted) setRemoteUsers(prev => prev.filter(u => u.uid !== user.uid));
+                    });
+                    client.on("volume-indicator", volumes => {
+                        let mainSpeaker = null;
+                        volumes.forEach(volume => { if (volume.level > 5) mainSpeaker = volume.uid; });
+                        if(isMounted) setActiveSpeakerUid(mainSpeaker);
+                    });
+
+                    try {
+                        await client.join(agoraAppId, gameData.roomCode, null, userId);
+                        const micTrack = await window.AgoraRTC.createMicrophoneAudioTrack();
+                        localAudioTrack.current = micTrack;
+                        await client.publish([micTrack]);
+                        client.enableAudioVolumeIndicator();
+                    } catch (error) { console.error("Agora Init Error:", error); }
+                };
+
+                initAgora();
+
+                return () => {
+                    isMounted = false;
+                    if(agoraClient.current) {
+                        agoraClient.current.leave();
+                        agoraClient.current = null;
+                    }
+                    localAudioTrack.current?.close();
+                    localAudioTrack.current = null;
+                    setRemoteUsers([]);
+                };
+            }, [gameState, gameData?.roomCode, userId]);
+            
+            const handleSelfMute = async () => {
+                if (localAudioTrack.current) {
+                    await localAudioTrack.current.setMuted(!isMicMuted);
+                    setIsMicMuted(!isMicMuted);
+                }
+            };
+            
+            const handleRemoteMute = (remoteUser, shouldMute) => {
+                if (remoteUser && remoteUser.audioTrack) {
+                    remoteUser.audioTrack.setVolume(shouldMute ? 0 : 100);
+                    setPlayerMuteStates(prev => ({...prev, [remoteUser.uid]: shouldMute }));
+                }
+            };
+
 
             const subscribeToGame = useCallback((code) => {
                 if (gameUnsubscribe.current) gameUnsubscribe.current();
@@ -186,13 +274,12 @@
                 return typeof value === 'function' ? value(...args) : value;
             };
             
-            const props = { gameData, userId, getGameRef, t, language, db: dbRef.current };
+            const props = { gameData, userId, getGameRef, t, language };
 
             const renderContent = () => {
                 if (!isFirebaseReady) {
                     return <div className="text-center"><div className="text-2xl animate-spin">⏳</div>Loading Game...</div>;
                 }
-
                 switch (gameState) {
                     case 'lobby': return <LobbyScreen {...props} />;
                     case 'reveal': return <RevealScreen {...props} />;
@@ -204,26 +291,28 @@
 
             return (
                 <div className="w-screen h-screen flex justify-center items-center p-4">
-                    <div className="absolute top-4 left-4 z-50 flex items-center gap-2">
-                        {gameData && gameState !== 'home' && userId && (
-                            <VoiceChat 
-                                appId="1e4b8677cbf34cf59f8850d9c4485cad" 
-                                channelName={gameData.roomCode}
-                                uid={userId}
-                                allPlayers={gameData.players}
-                                t={t}
-                            />
-                        )}
-                         {gameState !== 'home' && (
-                            <button onClick={handleExit} title="Exit Game" className="btn bg-red-600 hover:bg-red-700 text-white !p-3 text-xl">
-                                {t('exitGame')}
-                            </button>
-                        )}
+                     <div className="absolute top-4 right-4 z-50">
+                        <button onClick={() => setIsSettingsOpen(true)} className="btn bg-gray-700 hover:bg-gray-600 text-white !p-3 text-2xl">⚙️</button>
                     </div>
-                    <div className="absolute top-4 right-4 flex items-center gap-4 z-50">
-                        <LanguageSwitcher language={language} setLanguage={setLanguage} t={t} />
-                        <div className="text-3xl cursor-pointer select-none" onClick={() => setIsDarkMode(!isDarkMode)}>{isDarkMode ? '☀️' : '🌙'}</div>
-                    </div>
+
+                    <SettingsPanel
+                        isOpen={isSettingsOpen}
+                        onClose={() => setIsSettingsOpen(false)}
+                        t={t}
+                        language={language} setLanguage={setLanguage}
+                        isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode}
+                        handleExit={handleExit}
+                        gameData={gameData}
+                        userId={userId}
+                        audio={{
+                            remoteUsers,
+                            isMicMuted,
+                            playerMuteStates,
+                            activeSpeakerUid,
+                            handleSelfMute,
+                            handleRemoteMute
+                        }}
+                    />
                     
                     {renderContent()}
 
@@ -232,27 +321,86 @@
             );
         }
 
-        const LanguageSwitcher = ({ language, setLanguage, t }) => {
-            const [isOpen, setIsOpen] = useState(false);
+        const SettingsPanel = ({ isOpen, onClose, t, language, setLanguage, isDarkMode, setIsDarkMode, handleExit, gameData, userId, audio }) => {
+            if (!isOpen) return null;
+
+            const [showScores, setShowScores] = useState(false);
             const languages = { en: 'English 🇬🇧', te: 'తెలుగు 🇮🇳', hi: 'हिन्दी 🇮🇳' };
-            const selectLanguage = (lang) => { setLanguage(lang); setIsOpen(false); };
+            const allVoiceUsers = [ { uid: userId, isMuted: audio.isMicMuted }, ...audio.remoteUsers.map(u => ({...u, isMuted: audio.playerMuteStates[u.uid] }))];
+            
+            const sortedPlayers = gameData ? Object.values(gameData.players).sort((a,b) => b.score - a.score) : [];
+            const topScore = sortedPlayers.length > 0 ? sortedPlayers[0].score : 0;
+            
             return (
-                <div className="relative inline-block text-left">
-                    <div>
-                        <button type="button" onClick={() => setIsOpen(!isOpen)} className="inline-flex justify-center w-full rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none" id="menu-button">
-                            🌐 {t('langButton')}
-                            <svg className="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
-                        </button>
+                <>
+                <div className="fixed inset-0 bg-black/60 z-40" onClick={onClose}></div>
+                <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[var(--surface-main)] w-full max-w-lg p-6 rounded-2xl shadow-2xl z-50">
+                    <h2 className="text-2xl font-bold mb-6 text-center">{t('settings')}</h2>
+                    
+                    {/* Language */}
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium mb-1">{t('langButton')}</label>
+                        <select value={language} onChange={e => setLanguage(e.target.value)} className="input-field w-full">
+                           {Object.entries(languages).map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+                        </select>
                     </div>
-                    {isOpen && (
-                        <div onMouseLeave={() => setIsOpen(false)} className="origin-top-right absolute right-0 mt-2 w-40 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu">
-                            <div className="py-1" role="none">
-                                {Object.entries(languages).map(([code, name]) => ( <a href="#" key={code} onClick={(e) => { e.preventDefault(); selectLanguage(code); }} className={`text-gray-700 dark:text-gray-200 block px-4 py-2 text-sm text-left ${language === code ? 'bg-gray-100 dark:bg-gray-700 font-bold' : ''}`} role="menuitem">{name} {language === code && '✓'}</a> ))}
+
+                    {/* Theme */}
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium mb-1">{t('theme')}</label>
+                        <div className="flex items-center gap-2 rounded-lg bg-gray-200 dark:bg-gray-700 p-1">
+                           <button onClick={() => setIsDarkMode(false)} className={`w-full p-2 rounded ${!isDarkMode ? 'bg-white dark:bg-gray-500 shadow' : ''}`}>{t('light')} ☀️</button>
+                           <button onClick={() => setIsDarkMode(true)} className={`w-full p-2 rounded ${isDarkMode ? 'bg-white dark:bg-gray-800 shadow' : ''}`}>{t('dark')} 🌙</button>
+                        </div>
+                    </div>
+
+                    {/* Audio Controls */}
+                    <div className="mb-4">
+                        <label className="block text-sm font-medium mb-1">{t('audioControls')}</label>
+                        <div className="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg max-h-40 overflow-y-auto">
+                            {allVoiceUsers.map(user => {
+                                const isSelf = user.uid === userId;
+                                const name = gameData?.players[user.uid]?.name || 'Player';
+                                const isMutedForMe = audio.playerMuteStates[user.uid];
+                                const isSpeaking = audio.activeSpeakerUid === user.uid;
+
+                                return (
+                                <div key={user.uid} className={`flex items-center justify-between p-2 rounded ${isSpeaking ? 'bg-green-500/20' : ''}`}>
+                                    <span className={isSpeaking ? 'font-bold text-green-400' : ''}>{name} {isSelf ? '(You)' : ''}</span>
+                                    {isSelf ? (
+                                        <button onClick={audio.handleSelfMute} className={`text-2xl`}>{audio.isMicMuted ? '🔇' : '🎤'}</button>
+                                    ) : (
+                                        <button onClick={() => audio.handleRemoteMute(user, !isMutedForMe)} className="text-2xl">{isMutedForMe ? '🔈' : '🔊'}</button>
+                                    )}
+                                </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="grid grid-cols-2 gap-4 mt-6">
+                        <button onClick={() => setShowScores(true)} className="btn bg-blue-600 text-white w-full">{t('showScores')}</button>
+                        <button onClick={handleExit} className="btn bg-red-600 text-white w-full">{t('exitGame')}</button>
+                    </div>
+                </div>
+                {showScores && (
+                    <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50" onClick={() => setShowScores(false)}>
+                        <div className="bg-[var(--surface-main)] p-6 rounded-xl shadow-lg w-full max-w-sm" onClick={e => e.stopPropagation()}>
+                            <h3 className="font-bold mb-4 text-xl text-center">{t('scoreboard')}</h3>
+                            <div className="space-y-2">
+                            {sortedPlayers.map(p => (
+                                <div key={p.name} className={`flex justify-between items-center p-2 rounded-lg ${p.score === topScore && topScore > 0 ? 'bg-yellow-400/20' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                                    <span className="font-semibold">{p.name} {p.score === topScore && topScore > 0 ? '👑' : ''}</span>
+                                    <span className="font-bold">{p.score}</span>
+                                </div>
+                            ))}
                             </div>
                         </div>
-                    )}
-                </div>
-            );
+                    </div>
+                )}
+                </>
+            )
         };
         
         const HomeScreen = ({ setUsername, createRoom, joinRoom, t }) => {
@@ -275,21 +423,11 @@
             );
         }
         
-        const LobbyScreen = ({ gameData, userId, getGameRef, db, t }) => {
+        const LobbyScreen = ({ gameData, userId, getGameRef, t }) => {
             if (!userId) return null;
             const { hostId, players, roomCode } = gameData;
             const isHost = hostId === userId;
             const canStart = Object.keys(players).length >= 2;
-            
-            const kickPlayer = async (kickedUid) => {
-                playSound('lose');
-                const gameRef = getGameRef(roomCode);
-                const batch = writeBatch(db);
-                batch.update(gameRef, {
-                    [`players.${kickedUid}`]: Firebase.firestore.FieldValue.delete()
-                });
-                await batch.commit();
-            };
             
             const startGame = async () => {
                 playSound('click');
@@ -312,14 +450,7 @@
                     <p>{t('roomCodeLabel')} <strong className="text-2xl text-[var(--primary)] tracking-widest">{roomCode}</strong></p>
                     <div className="space-y-2 my-6 min-h-[150px] bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
                         <h3 className="font-bold text-lg mb-2">{t('playersJoined')}</h3>
-                        {Object.entries(players).map(([uid, p]) => (
-                            <div key={uid} className="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg font-semibold flex justify-between items-center">
-                                <span>{p.name}</span>
-                                {isHost && uid !== hostId && (
-                                    <button onClick={() => kickPlayer(uid)} title={`Kick ${p.name}`} className="text-red-500 hover:text-red-700 text-xl">👢</button>
-                                )}
-                            </div>
-                        ))}
+                        {Object.values(players).map(p => <div key={p.name} className="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg font-semibold flex justify-between items-center"><span>{p.name}</span> <span className="text-green-500">✔</span></div>)}
                     </div>
                     {isHost && <button onClick={startGame} disabled={!canStart} className="btn bg-blue-600 text-white w-full text-xl">{t('startGame')}</button>}
                     {!isHost && <p>{t('waitingForHost')}</p>}
@@ -429,12 +560,9 @@
 
         const ResultScreen = ({ gameData, userId, getGameRef, t }) => {
             const { hostId, roles, players, result, roomCode } = gameData;
-            const [showWinnerPopup, setShowWinnerPopup] = useState(true);
-
             if (!result || !roles || !players) return <div className="text-white">Loading results...</div>;
             
             const sortedPlayers = Object.values(players).sort((a,b) => b.score - a.score);
-            const winner = sortedPlayers[0];
 
             const isHost = hostId === userId;
             const playAgain = async () => {
@@ -461,20 +589,8 @@
             const playerGuessedByRajaRole = roles[result.rajaGuess] || 'N/A';
 
             return (
-                <>
-                {showWinnerPopup && winner && (
-                    <div className="fixed inset-0 bg-black/70 flex justify-center items-center z-50">
-                        <div className="bg-[var(--surface-main)] p-8 rounded-2xl shadow-2xl text-center relative w-full max-w-sm">
-                            <Confetti type={result.winType} />
-                            <h2 className="text-3xl font-bold text-yellow-400 mb-4">{t('winnerPopupTitle')}</h2>
-                            <div className="text-5xl mb-4">🏆</div>
-                            <p className="text-2xl font-bold">{winner.name}</p>
-                            <p className="text-lg">{t('score')}: {winner.score}</p>
-                            <button onClick={() => setShowWinnerPopup(false)} className="btn bg-blue-600 text-white w-full mt-6">{t('close')}</button>
-                        </div>
-                    </div>
-                )}
                 <div className="w-full max-w-2xl bg-[var(--surface-main)] p-6 md:p-8 rounded-2xl shadow-2xl text-center relative overflow-hidden">
+                    <Confetti type={result.winType} />
                     <h2 className="text-3xl font-bold mb-4">{result.dialogue}</h2>
                     <div className="mt-6 space-y-4">
                         <h3 className="text-xl font-semibold text-center text-slate-200 border-b border-slate-600 pb-2 mb-4">{t('guessBreakdown')}</h3>
@@ -510,99 +626,9 @@
                     {isHost && <button onClick={playAgain} className="btn bg-blue-600 text-white w-full mt-4">{t('playNextRound')}</button>}
                     {!isHost && <p className="mt-4">{t('waitingForHostNewGame')}</p>}
                 </div>
-                </>
             );
         };
         
-        const VoiceChat = ({ appId, channelName, uid, allPlayers, t }) => {
-            const client = useRef(null);
-            const localAudioTrack = useRef(null);
-            const [remoteUsers, setRemoteUsers] = useState([]);
-            const [isMuted, setIsMuted] = useState(false);
-            const [activeSpeakerUid, setActiveSpeakerUid] = useState(null);
-            const [isJoined, setIsJoined] = useState(false);
-
-            useEffect(() => {
-                if (!appId || !channelName || !uid ) return;
-                
-                let isMounted = true;
-
-                const initAgora = async () => {
-                     if (!window.AgoraRTC) {
-                        if (isMounted) setTimeout(initAgora, 200);
-                        return;
-                    }
-                    if (client.current) return;
-
-                    client.current = window.AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-
-                    client.current.on("user-published", async (user, mediaType) => {
-                        await client.current.subscribe(user, mediaType);
-                        if (mediaType === "audio") user.audioTrack.play();
-                        if(isMounted) setRemoteUsers(prev => [...prev.filter(u => u.uid !== user.uid), user]);
-                    });
-                    client.current.on("user-unpublished", (user, mediaType) => {
-                        if(isMounted) setRemoteUsers(prev => prev.filter(u => u.uid !== user.uid));
-                    });
-                    client.current.on("user-left", (user) => {
-                        if(isMounted) setRemoteUsers(prev => prev.filter(u => u.uid !== user.uid));
-                    });
-                    client.current.on("volume-indicator", volumes => {
-                        let mainSpeaker = null;
-                        volumes.forEach(volume => {
-                            if (volume.level > 5) mainSpeaker = volume.uid;
-                        });
-                        if(isMounted) setActiveSpeakerUid(mainSpeaker);
-                    });
-
-                    try {
-                        await client.current.join(appId, channelName, null, uid);
-                        const micTrack = await window.AgoraRTC.createMicrophoneAudioTrack();
-                        localAudioTrack.current = micTrack;
-                        await client.current.publish([micTrack]);
-                        client.current.enableAudioVolumeIndicator();
-                        if(isMounted) setIsJoined(true);
-                    } catch (error) {
-                        console.error("Agora Join/Publish Error:", error);
-                    }
-                };
-
-                initAgora();
-
-                return () => {
-                    isMounted = false;
-                    localAudioTrack.current?.close();
-                    if(client.current) {
-                        client.current.leave();
-                        client.current = null;
-                    }
-                    setIsJoined(false);
-                    setRemoteUsers([]);
-                };
-            }, [appId, channelName, uid]);
-
-            const handleMuteToggle = async () => {
-                if (localAudioTrack.current) {
-                    await localAudioTrack.current.setMuted(!isMuted);
-                    setIsMuted(!isMuted);
-                }
-            };
-
-            const getNameByUid = (targetUid) => allPlayers[targetUid]?.name || 'Player';
-
-            if (!isJoined) {
-                return <div className="p-2 bg-gray-900/80 rounded-lg text-white text-sm">🎤...</div>
-            }
-
-            return (
-                <div className="bg-gray-900/80 backdrop-blur-sm text-white p-2 rounded-lg shadow-2xl">
-                    <button onClick={handleMuteToggle} title="Mute/Unmute" className={`w-10 h-10 rounded-full flex items-center justify-center text-xl transition-colors ${isMuted ? 'bg-red-600' : 'bg-green-600'}`}>
-                        {isMuted ? '🔇' : '🎤'}
-                    </button>
-                </div>
-            );
-        };
-
         const Chat = ({ gameData, username, getGameRef, t }) => {
             const [chatInput, setChatInput] = useState('');
             const [isOpen, setIsOpen] = useState(false);
