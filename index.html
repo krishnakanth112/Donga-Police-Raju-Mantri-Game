@@ -51,11 +51,6 @@
 </head>
 <body>
     <div id="root" class="bg-[var(--bg-main)] text-[var(--text-main)]"></div>
-    
-    <audio id="bgm" loop>
-        <source src="https://cdn.pixabay.com/download/audio/2022/02/07/audio_c5b9623916.mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
-    </audio>
 
     <script type="text/babel" data-type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -108,6 +103,7 @@
           const coreRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani'];
           const extraRoles = ['🪖 General Commander', '🎖️ Commander', '🧠 Mantri', '🤓 Batulu'];
           if (playerCount < 4) {
+            console.warn("Assigning roles for a game with less than 4 players.");
             const roles = coreRoles.slice(0, playerCount);
             return Object.fromEntries(playerIds.map((id, i) => [id, roles[i]]));
           }
@@ -531,8 +527,10 @@
             const localAudioTrack = useRef(null);
             const [remoteUsers, setRemoteUsers] = useState([]);
             const [isMicMuted, setIsMicMuted] = useState(() => localStorage.getItem('dongaPoliceMutePref') === 'true');
+            const [isBgmOn, setIsBgmOn] = useState(() => localStorage.getItem('dongaPoliceBgmPref') !== 'false');
             const [activeSpeakerUid, setActiveSpeakerUid] = useState(null);
             const [playerMuteStates, setPlayerMuteStates] = useState({});
+            const bgmRef = useRef(null);
 
             const dbRef = useRef();
             const gameUnsubscribe = useRef(null);
@@ -562,106 +560,62 @@
             useEffect(() => { localStorage.setItem('dongaPoliceLang', language); }, [language]);
 
             useEffect(() => {
-                const sessionFlagKey = 'adClickSessionTriggered';
-                if (sessionStorage.getItem(sessionFlagKey)) { return; }
-                const clickUrl = "https://toopsoug.net/4/9468874?var=policedonga_home";
-                const clickTbEventInit = () => {
-                    window.open(clickUrl, '_blank', 'noreferrer,noopener');
-                    sessionStorage.setItem(sessionFlagKey, 'true');
-                    document.removeEventListener('click', clickTbEventInit);
+                const bgmElement = document.getElementById('bgm');
+                bgmRef.current = bgmElement;
+
+                const playBgmOnFirstInteraction = () => {
+                    if (bgmElement.paused) {
+                        bgmElement.play().catch(e => console.error("BGM play failed:", e));
+                    }
+                    document.removeEventListener('click', playBgmOnFirstInteraction);
                 };
-                const timerId = setTimeout(() => {
-                    document.addEventListener('click', clickTbEventInit);
-                }, 5000);
-                return () => { clearTimeout(timerId); document.removeEventListener('click', clickTbEventInit); };
+
+                document.addEventListener('click', playBgmOnFirstInteraction);
+
+                return () => document.removeEventListener('click', playBgmOnFirstInteraction);
             }, []);
 
             useEffect(() => {
-                if (gameState === 'home' || !gameData?.roomCode || !userId) {
-                     if (agoraClient.current) {
-                        agoraClient.current.leave();
-                        agoraClient.current = null;
-                        localAudioTrack.current?.close();
-                        localAudioTrack.current = null;
-                        setRemoteUsers([]);
-                    }
-                    return;
+                if (bgmRef.current) {
+                    bgmRef.current.muted = !isBgmOn;
                 }
-                let isMounted = true;
-                const initAgora = async () => {
-                    if (!window.AgoraRTC) {
-                         if(isMounted) setTimeout(initAgora, 200);
-                         return;
-                    }
-                    const client = window.AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-                    agoraClient.current = client;
-                    client.on("user-published", async (user, mediaType) => {
-                        await client.subscribe(user, mediaType);
-                        if (mediaType === "audio") user.audioTrack.play();
-                        if(isMounted) setRemoteUsers(prev => [...prev.filter(u => u.uid !== user.uid), user]);
-                    });
-                    client.on("user-unpublished", (user) => {
-                        if(isMounted) setRemoteUsers(prev => prev.filter(u => u.uid !== user.uid));
-                    });
-                     client.on("user-left", (user) => {
-                        if(isMounted) setRemoteUsers(prev => prev.filter(u => u.uid !== user.uid));
-                    });
-                    client.on("volume-indicator", volumes => {
-                        let mainSpeaker = null;
-                        volumes.forEach(volume => { if (volume.level > 5) mainSpeaker = volume.uid; });
-                        if(isMounted) setActiveSpeakerUid(mainSpeaker);
-                    });
-                    try {
-                        await client.join(agoraAppId, gameData.roomCode, null, userId);
-                        const micTrack = await window.AgoraRTC.createMicrophoneAudioTrack();
-                        localAudioTrack.current = micTrack;
-                        await client.publish([micTrack]);
-                        await localAudioTrack.current.setMuted(isMicMuted);
-                        client.enableAudioVolumeIndicator();
-                    } catch (error) { console.error("Agora Init Error:", error); }
-                };
-                initAgora();
-                return () => { isMounted = false; if(agoraClient.current) { agoraClient.current.leave(); agoraClient.current = null; } localAudioTrack.current?.close(); localAudioTrack.current = null; setRemoteUsers([]); };
-            }, [gameState, gameData?.roomCode, userId]);
-            
-            const handleSelfMute = async () => {
-                if (localAudioTrack.current) {
-                    const newMutedState = !isMicMuted;
-                    await localAudioTrack.current.setMuted(newMutedState);
-                    setIsMicMuted(newMutedState);
-                    localStorage.setItem('dongaPoliceMutePref', newMutedState);
-                }
-            };
-            
-            const handleRemoteMute = (remoteUser, shouldMute) => {
-                if (remoteUser && remoteUser.audioTrack) {
-                    remoteUser.audioTrack.setVolume(shouldMute ? 0 : 100);
-                    setPlayerMuteStates(prev => ({...prev, [remoteUser.uid]: shouldMute }));
-                }
-            };
-            
-            const subscribeToGame = useCallback((code) => {
-                if (gameUnsubscribe.current) gameUnsubscribe.current();
-                const gameRef = getGameRef(code);
-                gameUnsubscribe.current = onSnapshot(gameRef, (doc) => {
-                    if (doc.exists()) {
-                        setGameData(doc.data());
-                        setGameState(doc.data().gameState);
-                    } else {
-                        if(gameUnsubscribe.current) { handleExit(); }
-                    }
-                });
-            }, []);
+            }, [isBgmOn]);
 
+            const toggleBgm = () => {
+                const newIsBgmOn = !isBgmOn;
+                setIsBgmOn(newIsBgmOn);
+                localStorage.setItem('dongaPoliceBgmPref', newIsBgmOn);
+            };
+            
             const handleExit = () => {
                 if (gameUnsubscribe.current) {
                     gameUnsubscribe.current();
                     gameUnsubscribe.current = null;
                 }
+                if (agoraClient.current) {
+                    agoraClient.current.leave();
+                    agoraClient.current = null;
+                    localAudioTrack.current?.close();
+                }
                 setGameData(null);
                 setGameState('home');
             };
 
+            const props = { gameData, userId, getGameRef, t: (key, ...args) => { const value = translations[language]?.[key] || translations['en'][key]; return typeof value === 'function' ? value(...args) : value; }, language };
+
+            const renderContent = () => {
+                if (!isFirebaseReady) {
+                    return <div className="text-center"><div className="text-2xl animate-spin">⏳</div>Loading Game...</div>;
+                }
+                switch (gameState) {
+                    case 'lobby': return <LobbyScreen {...props} />;
+                    case 'reveal': return <RevealScreen {...props} />;
+                    case 'police_guess': case 'raja_guess': return <GuessScreen {...props} />;
+                    case 'result': return <ResultScreen {...props} />;
+                    default: return <HomeScreen {...props} setUsername={setUsername} createRoom={createRoom} joinRoom={joinRoom} />;
+                }
+            };
+            
             const createRoom = async () => {
                 if (!username.trim() || !userId) { alert("Please enter your name!"); return; }
                 const newRoomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -681,25 +635,18 @@
                 subscribeToGame(code);
             };
             
-            const t = (key, ...args) => {
-                const value = translations[language]?.[key] || translations['en'][key];
-                return typeof value === 'function' ? value(...args) : value;
-            };
-            
-            const props = { gameData, userId, getGameRef, t, language };
-
-            const renderContent = () => {
-                if (!isFirebaseReady) {
-                    return <div className="text-center"><div className="text-2xl animate-spin">⏳</div>Loading Game...</div>;
-                }
-                switch (gameState) {
-                    case 'lobby': return <LobbyScreen {...props} />;
-                    case 'reveal': return <RevealScreen {...props} />;
-                    case 'police_guess': case 'raja_guess': return <GuessScreen {...props} />;
-                    case 'result': return <ResultScreen {...props} />;
-                    default: return <HomeScreen {...props} setUsername={setUsername} createRoom={createRoom} joinRoom={joinRoom} />;
-                }
-            };
+            const subscribeToGame = useCallback((code) => {
+                if (gameUnsubscribe.current) gameUnsubscribe.current();
+                const gameRef = getGameRef(code);
+                gameUnsubscribe.current = onSnapshot(gameRef, (doc) => {
+                    if (doc.exists()) {
+                        setGameData(doc.data());
+                        setGameState(doc.data().gameState);
+                    } else {
+                        if(gameUnsubscribe.current) { handleExit(); }
+                    }
+                });
+            }, []);
 
             return (
                 <div className="w-screen h-screen flex justify-center items-center p-4">
@@ -710,14 +657,14 @@
                     <SettingsPanel
                         isOpen={isSettingsOpen}
                         onClose={() => setIsSettingsOpen(false)}
-                        t={t}
+                        t={(key, ...args) => { const value = translations[language]?.[key] || translations['en'][key]; return typeof value === 'function' ? value(...args) : value; }}
                         language={language} setLanguage={setLanguage}
                         isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode}
                         handleExit={handleExit}
                         gameData={gameData}
                         userId={userId}
-                        audio={{ remoteUsers, isMicMuted, playerMuteStates, activeSpeakerUid, handleSelfMute, handleRemoteMute }}
-                        bgm={{ isMuted: false, toggleMute: () => {} }} // Dummy BGM controls
+                        audio={{ remoteUsers:[], isMicMuted:false, playerMuteStates:{}, activeSpeakerUid:null, handleSelfMute:()=>{}, handleRemoteMute:()=>{} }} // dummy audio props
+                        bgm={{ isMuted: !isBgmOn, toggleMute: toggleBgm }}
                     />
                     
                     {renderContent()}
