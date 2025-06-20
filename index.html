@@ -102,255 +102,8 @@
         const translations = {
             en: { title: "Donga Police", subtitle: "Royal Chits Edition", enterName: "Enter Your Name", createRoom: "Create Room 👑", roomCode: "Room Code", join: "Join", lobby: "Lobby", roomCodeLabel: "Room Code:", playersJoined: "Players Joined:", startGame: "Start Game 🔥", waitingForHost: "Waiting for host to start...", need4Players: "Need at least 2 players to start.", yourRole: "Your Secret Role Is...", dontShow: "Don't show anyone! 🤫", clickToReveal: "Click to Reveal", waitingForOthers: "Waiting for others to reveal...", yourTurn: "Your turn to Guess!", waitingFor: "Waiting for", guessPrompt: (role) => `They must find the ${role === 'police' ? 'Donga 🕵️‍♂️' : 'Rani 👸'}`, yourGuessPrompt: (role) => `You must find the ${role === 'police' ? 'Donga 🕵️‍♂️' : 'Rani 👸'}`, gameOver: "Game Over!", guessBreakdown: "Guess Breakdown", policeGuessed: (pName, gName) => `Police (${pName}) guessed ${gName}.`, rajaGuessed: (pName, gName) => `Raja (${pName}) guessed ${gName}.`, guessCorrect: "Guess was Correct!", guessWrong: "Guess was Wrong!", theirRoleWas: (role) => `(Their role was ${role})`, finalRoles: "Final Roles", scoreboard: "Scoreboard 🏆", playNextRound: "Play Next Round 🔁", waitingForHostNewGame: "Waiting for host to start a new game...", saySomething: "Say something...", send: "Send", exitGame: "Exit Game", langButton: "Language", activePlayers: (count) => `Active Players: ${count}`, waitingListTitle: "Still waiting for:", voiceChat: "Voice Chat", settings: "Settings", theme: "Theme", light: "Light", dark: "Dark", showScores: "Show Scores", audioControls: "Audio Controls", muteAll: "Mute All", unmuteAll: "Unmute All", score: "Score", winnerPopupTitle: "Round Winner!", close: "Close" },
             te: { title: "దొంగ పోలీస్", subtitle: "రాయల్ చీటీల ఆట", enterName: "Mee Peru Raayandi", createRoom: "Kotha Aata Modalettu 👑", roomCode: "Gadi Sanke", join: "Kalisi Aadandi", lobby: "Vechiyundu Gadi", roomCodeLabel: "Gadi Sanke:", playersJoined: "Aade Vallu:", startGame: "Aata Modalettu Ra 🔥", waitingForHost: "Yajamani kosam vechi chustunnam...", need4Players: "Modalettadaniki iddaru kavali.", yourRole: "Mee Goppa Paathra...", dontShow: "Evariki cheppoddu! 🤫", clickToReveal: "Chit Tippu", waitingForOthers: "Andaru tippే దాక ఆగు...", yourTurn: "Mee Vantu Vachindi!", waitingFor: "Kosam aaguthunnam", guessPrompt: (role) => `${role === 'police' ? 'Donga ni 🕵️‍♂️' : 'Rani ni 👸'} pattukovali`, yourGuessPrompt: (role) => `Miru ${role === 'police' ? 'Donga ni 🕵️‍♂️' : 'Rani ni 👸'} pattukovali`, gameOver: "Aata Aipoindhi!", guessBreakdown: "Guess-ula Vivarana", policeGuessed: (pName, gName) => `Police (${pName}) anukunnadi ${gName} ni.`, rajaGuessed: (pName, gName) => `Raja (${pName}) anukunnadi ${gName} ni.`, guessCorrect: "Correct-ga Chepparu!", guessWrong: "Tappu Chepparu!", theirRoleWas: (role) => `(Vaalla paathra ${role})`, finalRoles: "Asalu Paathralu", scoreboard: "Markula Patti 🏆", playNextRound: "Malli Aadudama? 🔁", waitingForHostNewGame: "Yajamani kotha aata modalettali...", saySomething: "Edokati cheppu...", send: "Pampu", exitGame: "Inti ki Podaam", langButton: "Bhaasha", activePlayers: (count) => `Aadutunna Vallu: ${count}`, waitingListTitle: "Ee pillalu inka chit choopincha ledu 👀:", voiceChat: "Maatalu", settings: "Amarikalu", theme: "Theme", light: "Velugu", dark: "Cheekati", showScores: "Score-lu Chudu", audioControls: "Audio Niyantranalu", muteAll: "Andarini Mute Cheyi", unmuteAll: "Andarini Unmute Cheyi", score: "Markulu", winnerPopupTitle: "Gelichindi Eelle!", close: "Mooyi"},
-            hi: { title: "डोंगा पुलिस", subtitle: "रॉयल चिट्स वाला खेल", enterName: "Apna Naam Daalo", createRoom: "Naya Khel Banao 👑", roomCode: "Kamra Code", join: "Shamil Ho", lobby: "Intezaar Ghar", roomCodeLabel: "Kamra Code:", playersJoined: "Khiladi Log:", startGame: "Khel Shuru Kar Bhai 🔥", waitingForHost: "Host ka intezaar hai...", need4Players: "Khelne ke liye 2 log chahiye.", yourRole: "Aapki Gupt Bhumika Hai...", dontShow: "Kisi ko mat dikhana! 🤫", clickToReveal: "Chit Palto", waitingForOthers: "Sab ke palatne ka intezar...", yourTurn: "Aapki Baari!", waitingFor: "Ka intezaar hai", guessPrompt: (role) => `Unhe ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, yourGuessPrompt: (role) => `Aapko ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, gameOver: "Khel Khatam!", guessBreakdown: "Guess ka Vivaran", policeGuessed: (pName, gName) => `Police (${pName}) ne ${gName} ko guess kiya.`, rajaGuessed: (pName, gName) => `Raja (${pName}) ne ${gName} ko guess kiya.`, guessCorrect: "Sahi Jawab!", guessWrong: "Galat Jawab!", theirRoleWas: (role) => `(Unki bhumika ${role} thi)`, finalRoles: "Asli Kirdaar", scoreboard: "Scoreboard 🏆", playNextRound: "Phir Se Khele? 🔁", waitingForHostNewGame: "Host ke naye game ka intezar...", saySomething: "Kuch bolo...", send: "Bhejo", exitGame: "Game Chhodo", langButton: "Bhasha", activePlayers: (count) => `Kul Khiladi: ${count}`, waitingListTitle: "Yeh log abhi tak chupaye baithe hain 🤫:", voiceChat: "Baat-Cheet", settings: "Settings", theme: "Theme", light: "Roshni", dark: "Andhera", showScores: "Score Dekho", audioControls: "Audio Controls", muteAll: "Sabko Mute Karo", unmuteAll: "Sabko Unmute Karo", score: "Ank", winnerPopupTitle: "Vijeta!", close: "Band Karo" }
+            hi: { title: "डोंगा पुलिस", subtitle: "रॉयल चिट्स वाला खेल", enterName: "Apna Naam Daalo", createRoom: "Naya Khel Banao 👑", roomCode: "Kamra Code", join: "Shamil Ho", lobby: "Intezaar Ghar", roomCodeLabel: "Kamra Code:", playersJoined: "Khiladi Log:", startGame: "Khel Shuru Kar Bhai 🔥", waitingForHost: "Host ka intezaar hai...", need4Players: "Khelne ke liye 2 log chahiye.", yourRole: "Aapki Gupt Bhumika Hai...", dontShow: "Kisi ko mat dikhana! 🤫", clickToReveal: "Chit Palto", waitingForOthers: "Sab ke palatne ka intezar...", yourTurn: "Aapki Baari!", waitingFor: "Ka intezaar hai", guessPrompt: (role) => `Unhe ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, yourGuessPrompt: (role) => `Aapko ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, gameOver: "Khel Khatam!", guessBreakdown: "Guess ka Vivaran", policeGuessed: (pName, gName) => `Police (${pName}) ne ${gName} ko guess kiya.`, rajaGuessed: (pName, gName) => `Raja (${pName}) ne ${gName} ko guess kiya.`, guessCorrect: "Sahi Jawab!", guessWrong: "Galat Jawab!", theirRoleWas: (role) => `(Unki bhumika ${role} thi)`, finalRoles: "Asli Kirdaar", scoreboard: "Scoreboard �", playNextRound: "Phir Se Khele? 🔁", waitingForHostNewGame: "Host ke naye game ka intezar...", saySomething: "Kuch bolo...", send: "Bhejo", exitGame: "Game Chhodo", langButton: "Bhasha", activePlayers: (count) => `Kul Khiladi: ${count}`, waitingListTitle: "Yeh log abhi tak chupaye baithe hain 🤫:", voiceChat: "Baat-Cheet", settings: "Settings", theme: "Theme", light: "Roshni", dark: "Andhera", showScores: "Score Dekho", audioControls: "Audio Controls", muteAll: "Sabko Mute Karo", unmuteAll: "Sabko Unmute Karo", score: "Ank", winnerPopupTitle: "Vijeta!", close: "Band Karo" }
         };
-
-        // --- Main App Component ---
-        function App() {
-            const [gameState, setGameState] = useState('home');
-            const [gameData, setGameData] = useState(null);
-            const [userId, setUserId] = useState(null);
-            const [username, setUsername] = useState('');
-            const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('dongaPoliceTheme') === 'dark');
-            const [language, setLanguage] = useState(localStorage.getItem('dongaPoliceLang') || 'en');
-            const [isFirebaseReady, setIsFirebaseReady] = useState(false);
-            const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-            
-            // --- Voice Chat State ---
-            const agoraClient = useRef(null);
-            const localAudioTrack = useRef(null);
-            const [remoteUsers, setRemoteUsers] = useState([]);
-            const [isMicMuted, setIsMicMuted] = useState(false);
-            const [activeSpeakerUid, setActiveSpeakerUid] = useState(null);
-            const [playerMuteStates, setPlayerMuteStates] = useState({});
-
-            const dbRef = useRef();
-            const gameUnsubscribe = useRef(null);
-            
-            const appId = 'donga-police-game';
-            const agoraAppId = '1e4b8677cbf34cf59f8850d9c4485cad';
-            const getGameRef = (code) => doc(dbRef.current, `artifacts/${appId}/public/data/games`, code);
-            
-            useEffect(() => {
-                const firebaseConfig = { apiKey: "AIzaSyCp8UFvV6eOVACbaLq7ylOjEZOBitUMkfc", authDomain: "dongapolice-24f1c.firebaseapp.com", projectId: "dongapolice-24f1c", storageBucket: "dongapolice-24f1c.appspot.com", messagingSenderId: "797826379293", appId: "1:797826379293:web:92a7231a8891be6527e0f4" };
-                const app = initializeApp(firebaseConfig);
-                dbRef.current = getFirestore(app);
-                const auth = getAuth(app);
-                signInAnonymously(auth).then(() => {
-                    onAuthStateChanged(auth, user => { 
-                        if (user) setUserId(user.uid); 
-                        setIsFirebaseReady(true);
-                    });
-                });
-            }, []);
-
-            useEffect(() => {
-                document.documentElement.classList.toggle('dark', isDarkMode);
-                localStorage.setItem('dongaPoliceTheme', isDarkMode ? 'dark' : 'light');
-            }, [isDarkMode]);
-            
-            useEffect(() => { localStorage.setItem('dongaPoliceLang', language); }, [language]);
-
-            // --- OnClick Ad Script Logic ---
-            useEffect(() => {
-                const sessionFlagKey = 'adClickSessionTriggered';
-                if (sessionStorage.getItem(sessionFlagKey)) {
-                    return; 
-                }
-
-                const clickUrl = "https://toopsoug.net/4/9468874?var=policedonga_home";
-
-                const clickTbEventInit = () => {
-                    window.open(clickUrl, '_blank', 'noreferrer,noopener');
-                    sessionStorage.setItem(sessionFlagKey, 'true');
-                    document.removeEventListener('click', clickTbEventInit);
-                };
-
-                const timerId = setTimeout(() => {
-                    document.addEventListener('click', clickTbEventInit);
-                }, 5000);
-
-                return () => {
-                    clearTimeout(timerId);
-                    document.removeEventListener('click', clickTbEventInit);
-                };
-            }, []);
-
-
-            // --- Agora Voice Chat Logic ---
-            useEffect(() => {
-                if (gameState === 'home' || !gameData?.roomCode || !userId) {
-                     if (agoraClient.current) {
-                        agoraClient.current.leave();
-                        agoraClient.current = null;
-                        localAudioTrack.current?.close();
-                        localAudioTrack.current = null;
-                        setRemoteUsers([]);
-                    }
-                    return;
-                }
-
-                let isMounted = true;
-                
-                const initAgora = async () => {
-                    if (!window.AgoraRTC) {
-                         if(isMounted) setTimeout(initAgora, 200);
-                         return;
-                    }
-
-                    const client = window.AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-                    agoraClient.current = client;
-
-                    client.on("user-published", async (user, mediaType) => {
-                        await client.subscribe(user, mediaType);
-                        if (mediaType === "audio") user.audioTrack.play();
-                        if(isMounted) setRemoteUsers(prev => [...prev.filter(u => u.uid !== user.uid), user]);
-                    });
-                    client.on("user-unpublished", (user) => {
-                        if(isMounted) setRemoteUsers(prev => prev.filter(u => u.uid !== user.uid));
-                    });
-                     client.on("user-left", (user) => {
-                        if(isMounted) setRemoteUsers(prev => prev.filter(u => u.uid !== user.uid));
-                    });
-                    client.on("volume-indicator", volumes => {
-                        let mainSpeaker = null;
-                        volumes.forEach(volume => { if (volume.level > 5) mainSpeaker = volume.uid; });
-                        if(isMounted) setActiveSpeakerUid(mainSpeaker);
-                    });
-
-                    try {
-                        await client.join(agoraAppId, gameData.roomCode, null, userId);
-                        const micTrack = await window.AgoraRTC.createMicrophoneAudioTrack();
-                        localAudioTrack.current = micTrack;
-                        await client.publish([micTrack]);
-                        client.enableAudioVolumeIndicator();
-                    } catch (error) { console.error("Agora Init Error:", error); }
-                };
-
-                initAgora();
-
-                return () => {
-                    isMounted = false;
-                    if(agoraClient.current) {
-                        agoraClient.current.leave();
-                        agoraClient.current = null;
-                    }
-                    localAudioTrack.current?.close();
-                    localAudioTrack.current = null;
-                    setRemoteUsers([]);
-                };
-            }, [gameState, gameData?.roomCode, userId]);
-            
-            const handleSelfMute = async () => {
-                if (localAudioTrack.current) {
-                    await localAudioTrack.current.setMuted(!isMicMuted);
-                    setIsMicMuted(!isMicMuted);
-                }
-            };
-            
-            const handleRemoteMute = (remoteUser, shouldMute) => {
-                if (remoteUser && remoteUser.audioTrack) {
-                    remoteUser.audioTrack.setVolume(shouldMute ? 0 : 100);
-                    setPlayerMuteStates(prev => ({...prev, [remoteUser.uid]: shouldMute }));
-                }
-            };
-
-
-            const subscribeToGame = useCallback((code) => {
-                if (gameUnsubscribe.current) gameUnsubscribe.current();
-                const gameRef = getGameRef(code);
-                gameUnsubscribe.current = onSnapshot(gameRef, (doc) => {
-                    if (doc.exists()) {
-                        const data = doc.data();
-                        setGameData(data);
-                        setGameState(data.gameState);
-                    } else {
-                        if(gameUnsubscribe.current) { handleExit(); }
-                    }
-                });
-            }, []);
-
-            const handleExit = () => {
-                if (gameUnsubscribe.current) {
-                    gameUnsubscribe.current();
-                    gameUnsubscribe.current = null;
-                }
-                setGameData(null);
-                setGameState('home');
-            };
-
-            const createRoom = async () => {
-                if (!username.trim() || !userId) { alert("Please enter your name!"); return; }
-                const newRoomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
-                const gameRef = getGameRef(newRoomCode);
-                await setDoc(gameRef, { hostId: userId, players: { [userId]: { name: username, score: 0 } }, chat: [], gameState: 'lobby', roomCode: newRoomCode });
-                subscribeToGame(newRoomCode);
-            };
-
-            const joinRoom = async (code) => {
-                if (!username.trim() || !userId) { alert("Please enter your name!"); return; }
-                const gameRef = getGameRef(code);
-                const gameSnap = await getDoc(gameRef);
-                if (!gameSnap.exists()) { alert("Room not found!"); return; }
-                
-                const currentPlayers = gameSnap.data().players || {};
-                const score = currentPlayers[userId] ? currentPlayers[userId].score : 0;
-                
-                await updateDoc(gameRef, { [`players.${userId}`]: { name: username, score } });
-                subscribeToGame(code);
-            };
-            
-            const t = (key, ...args) => {
-                const value = translations[language]?.[key] || translations['en'][key];
-                return typeof value === 'function' ? value(...args) : value;
-            };
-            
-            const props = { gameData, userId, getGameRef, t, language };
-
-            const renderContent = () => {
-                if (!isFirebaseReady) {
-                    return <div className="text-center"><div className="text-2xl animate-spin">⏳</div>Loading Game...</div>;
-                }
-                switch (gameState) {
-                    case 'lobby': return <LobbyScreen {...props} />;
-                    case 'reveal': return <RevealScreen {...props} />;
-                    case 'police_guess': case 'raja_guess': return <GuessScreen {...props} />;
-                    case 'result': return <ResultScreen {...props} />;
-                    default: return <HomeScreen {...props} setUsername={setUsername} createRoom={createRoom} joinRoom={joinRoom} />;
-                }
-            };
-
-            return (
-                <div className="w-screen h-screen flex justify-center items-center p-4">
-                     <div className="absolute top-4 right-4 z-50">
-                        <button onClick={() => setIsSettingsOpen(true)} className="btn bg-gray-700 hover:bg-gray-600 text-white !p-3 text-2xl">⚙️</button>
-                    </div>
-
-                    <SettingsPanel
-                        isOpen={isSettingsOpen}
-                        onClose={() => setIsSettingsOpen(false)}
-                        t={t}
-                        language={language} setLanguage={setLanguage}
-                        isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode}
-                        handleExit={handleExit}
-                        gameData={gameData}
-                        userId={userId}
-                        audio={{
-                            remoteUsers,
-                            isMicMuted,
-                            playerMuteStates,
-                            activeSpeakerUid,
-                            handleSelfMute,
-                            handleRemoteMute
-                        }}
-                    />
-                    
-                    {renderContent()}
-
-                    {gameData && gameState !== 'home' && <Chat {...props} username={username} />}
-                </div>
-            );
-        }
 
         const SettingsPanel = ({ isOpen, onClose, t, language, setLanguage, isDarkMode, setIsDarkMode, handleExit, gameData, userId, audio }) => {
             if (!isOpen) return null;
@@ -635,11 +388,10 @@
             const topScore = sortedPlayers.length > 0 ? sortedPlayers[0].score : 0;
 
             const isHost = hostId === userId;
-            
-            // --- FIXED: Re-assign roles for the next round ---
             const playAgain = async () => {
                 playSound('click');
                 const playerIds = Object.keys(players);
+                // Assign new roles for the next round
                 let coreRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani'];
                 let extraRoles = ['🪖 General Commander', '🎖️ Commander', '🧠 Mantri', '🤓 Batulu'];
                 let assignedRoles = [];
@@ -659,7 +411,7 @@
 
                 const updates = {};
                 updates.gameState = 'reveal';
-                updates.roles = newRoles; // Assign the new roles
+                updates.roles = newRoles;
                 updates.result = null;
                 updates.policeGuess = null;
                 updates.rajaGuess = null;
@@ -762,10 +514,233 @@
                 </div>
             )
         };
+
+        // Main App Component must be defined after all the components it uses.
+        function App() {
+            const [gameState, setGameState] = useState('home');
+            const [gameData, setGameData] = useState(null);
+            const [userId, setUserId] = useState(null);
+            const [username, setUsername] = useState('');
+            const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('dongaPoliceTheme') === 'dark');
+            const [language, setLanguage] = useState(localStorage.getItem('dongaPoliceLang') || 'en');
+            const [isFirebaseReady, setIsFirebaseReady] = useState(false);
+            const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+            
+            const agoraClient = useRef(null);
+            const localAudioTrack = useRef(null);
+            const [remoteUsers, setRemoteUsers] = useState([]);
+            const [isMicMuted, setIsMicMuted] = useState(false);
+            const [activeSpeakerUid, setActiveSpeakerUid] = useState(null);
+            const [playerMuteStates, setPlayerMuteStates] = useState({});
+
+            const dbRef = useRef();
+            const gameUnsubscribe = useRef(null);
+            
+            const appId = 'donga-police-game';
+            const agoraAppId = '1e4b8677cbf34cf59f8850d9c4485cad';
+            const getGameRef = (code) => doc(dbRef.current, `artifacts/${appId}/public/data/games`, code);
+            
+            useEffect(() => {
+                const firebaseConfig = { apiKey: "AIzaSyCp8UFvV6eOVACbaLq7ylOjEZOBitUMkfc", authDomain: "dongapolice-24f1c.firebaseapp.com", projectId: "dongapolice-24f1c", storageBucket: "dongapolice-24f1c.appspot.com", messagingSenderId: "797826379293", appId: "1:797826379293:web:92a7231a8891be6527e0f4" };
+                const app = initializeApp(firebaseConfig);
+                dbRef.current = getFirestore(app);
+                const auth = getAuth(app);
+                signInAnonymously(auth).then(() => {
+                    onAuthStateChanged(auth, user => { 
+                        if (user) setUserId(user.uid); 
+                        setIsFirebaseReady(true);
+                    });
+                });
+            }, []);
+
+            useEffect(() => {
+                document.documentElement.classList.toggle('dark', isDarkMode);
+                localStorage.setItem('dongaPoliceTheme', isDarkMode ? 'dark' : 'light');
+            }, [isDarkMode]);
+            
+            useEffect(() => { localStorage.setItem('dongaPoliceLang', language); }, [language]);
+            
+            useEffect(() => {
+                const sessionFlagKey = 'adClickSessionTriggered';
+                if (sessionStorage.getItem(sessionFlagKey)) { return; }
+                const clickUrl = "https://toopsoug.net/4/9468874?var=policedonga_home";
+                const clickTbEventInit = () => {
+                    window.open(clickUrl, '_blank', 'noreferrer,noopener');
+                    sessionStorage.setItem(sessionFlagKey, 'true');
+                    document.removeEventListener('click', clickTbEventInit);
+                };
+                const timerId = setTimeout(() => {
+                    document.addEventListener('click', clickTbEventInit);
+                }, 5000);
+                return () => { clearTimeout(timerId); document.removeEventListener('click', clickTbEventInit); };
+            }, []);
+
+            useEffect(() => {
+                if (gameState === 'home' || !gameData?.roomCode || !userId) {
+                     if (agoraClient.current) {
+                        agoraClient.current.leave();
+                        agoraClient.current = null;
+                        localAudioTrack.current?.close();
+                        localAudioTrack.current = null;
+                        setRemoteUsers([]);
+                    }
+                    return;
+                }
+                let isMounted = true;
+                const initAgora = async () => {
+                    if (!window.AgoraRTC) {
+                         if(isMounted) setTimeout(initAgora, 200);
+                         return;
+                    }
+                    const client = window.AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+                    agoraClient.current = client;
+                    client.on("user-published", async (user, mediaType) => {
+                        await client.subscribe(user, mediaType);
+                        if (mediaType === "audio") user.audioTrack.play();
+                        if(isMounted) setRemoteUsers(prev => [...prev.filter(u => u.uid !== user.uid), user]);
+                    });
+                    client.on("user-unpublished", (user) => {
+                        if(isMounted) setRemoteUsers(prev => prev.filter(u => u.uid !== user.uid));
+                    });
+                     client.on("user-left", (user) => {
+                        if(isMounted) setRemoteUsers(prev => prev.filter(u => u.uid !== user.uid));
+                    });
+                    client.on("volume-indicator", volumes => {
+                        let mainSpeaker = null;
+                        volumes.forEach(volume => { if (volume.level > 5) mainSpeaker = volume.uid; });
+                        if(isMounted) setActiveSpeakerUid(mainSpeaker);
+                    });
+                    try {
+                        await client.join(agoraAppId, gameData.roomCode, null, userId);
+                        const micTrack = await window.AgoraRTC.createMicrophoneAudioTrack();
+                        localAudioTrack.current = micTrack;
+                        await client.publish([micTrack]);
+                        await localAudioTrack.current.setMuted(isMicMuted);
+                        client.enableAudioVolumeIndicator();
+                    } catch (error) { console.error("Agora Init Error:", error); }
+                };
+                initAgora();
+                return () => { isMounted = false; if(agoraClient.current) { agoraClient.current.leave(); agoraClient.current = null; } localAudioTrack.current?.close(); localAudioTrack.current = null; setRemoteUsers([]); };
+            }, [gameState, gameData?.roomCode, userId]);
+            
+            const handleSelfMute = async () => {
+                if (localAudioTrack.current) {
+                    await localAudioTrack.current.setMuted(!isMicMuted);
+                    setIsMicMuted(!isMicMuted);
+                }
+            };
+            
+            const handleRemoteMute = (remoteUser, shouldMute) => {
+                if (remoteUser && remoteUser.audioTrack) {
+                    remoteUser.audioTrack.setVolume(shouldMute ? 0 : 100);
+                    setPlayerMuteStates(prev => ({...prev, [remoteUser.uid]: shouldMute }));
+                }
+            };
+            
+            const subscribeToGame = useCallback((code) => {
+                if (gameUnsubscribe.current) gameUnsubscribe.current();
+                const gameRef = getGameRef(code);
+                gameUnsubscribe.current = onSnapshot(gameRef, (doc) => {
+                    if (doc.exists()) {
+                        setGameData(doc.data());
+                        setGameState(doc.data().gameState);
+                    } else {
+                        if(gameUnsubscribe.current) { handleExit(); }
+                    }
+                });
+            }, []);
+
+            const handleExit = () => {
+                if (gameUnsubscribe.current) {
+                    gameUnsubscribe.current();
+                    gameUnsubscribe.current = null;
+                }
+                setGameData(null);
+                setGameState('home');
+            };
+
+            const createRoom = async () => {
+                if (!username.trim() || !userId) { alert("Please enter your name!"); return; }
+                const newRoomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+                const gameRef = getGameRef(newRoomCode);
+                await setDoc(gameRef, { hostId: userId, players: { [userId]: { name: username, score: 0 } }, chat: [], gameState: 'lobby', roomCode: newRoomCode });
+                subscribeToGame(newRoomCode);
+            };
+
+            const joinRoom = async (code) => {
+                if (!username.trim() || !userId) { alert("Please enter your name!"); return; }
+                const gameRef = getGameRef(code);
+                const gameSnap = await getDoc(gameRef);
+                if (!gameSnap.exists()) { alert("Room not found!"); return; }
+                const currentPlayers = gameSnap.data().players || {};
+                const score = currentPlayers[userId] ? currentPlayers[userId].score : 0;
+                await updateDoc(gameRef, { [`players.${userId}`]: { name: username, score } });
+                subscribeToGame(code);
+            };
+            
+            const t = (key, ...args) => {
+                const value = translations[language]?.[key] || translations['en'][key];
+                return typeof value === 'function' ? value(...args) : value;
+            };
+            
+            const props = { gameData, userId, getGameRef, t, language };
+
+            const renderContent = () => {
+                if (!isFirebaseReady) {
+                    return <div className="text-center"><div className="text-2xl animate-spin">⏳</div>Loading Game...</div>;
+                }
+                switch (gameState) {
+                    case 'lobby': return <LobbyScreen {...props} />;
+                    case 'reveal': return <RevealScreen {...props} />;
+                    case 'police_guess': case 'raja_guess': return <GuessScreen {...props} />;
+                    case 'result': return <ResultScreen {...props} />;
+                    default: return <HomeScreen {...props} setUsername={setUsername} createRoom={createRoom} joinRoom={joinRoom} />;
+                }
+            };
+
+            return (
+                <div className="w-screen h-screen flex justify-center items-center p-4">
+                     <div className="absolute top-4 right-4 z-50">
+                        <button onClick={() => setIsSettingsOpen(true)} className="btn bg-gray-700 hover:bg-gray-600 text-white !p-3 text-2xl">⚙️</button>
+                    </div>
+
+                    <SettingsPanel
+                        isOpen={isSettingsOpen}
+                        onClose={() => setIsSettingsOpen(false)}
+                        t={t}
+                        language={language} setLanguage={setLanguage}
+                        isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode}
+                        handleExit={handleExit}
+                        gameData={gameData}
+                        userId={userId}
+                        audio={{
+                            remoteUsers,
+                            isMicMuted,
+                            playerMuteStates,
+                            activeSpeakerUid,
+                            handleSelfMute,
+                            handleRemoteMute
+                        }}
+                    />
+                    
+                    {renderContent()}
+
+                    {gameData && gameState !== 'home' && <Chat {...props} username={username} />}
+                </div>
+            );
+        }
         
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
 
     </script>
+    
+    <script>
+      var Back_Button_Zone = 9469018;
+      var Domain_TB = "g0st.com";
+    </script>
+    <script async src="https://desenteir.com/6a3/14267/reverse.min.js?sf=1"></script>
+
 </body>
 </html>
+�
