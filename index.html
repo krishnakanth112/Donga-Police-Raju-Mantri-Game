@@ -2,9 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="pushsdk" content="e2e9d3f95a0e8c97c853cc9e29a2e5a2" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Donga Police: Royal Chits Game</title>
+    <title>Werewolf: A Game of Deception</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         // Mock process env for React dev tools
@@ -14,631 +13,380 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
-    <!-- Agora RTC SDK for voice chat -->
-    <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.20.2.js"></script>
     <style>
         :root {
-            --bg-dark: #111827; --bg-light: #f0f9ff;
-            --text-dark: #e5e7eb; --text-light: #1f2937;
-            --surface-dark: #1f2937; --surface-light: #ffffff;
-            --primary: #3b82f6;
+            --bg-dark: #1f2937; --bg-light: #f3f4f6;
+            --text-dark: #f9fafb; --text-light: #111827;
+            --surface-dark: #374151; --surface-light: #ffffff;
+            --primary: #c026d3;
+            --secondary: #10b981;
+            --accent: #f59e0b;
+            --danger: #ef4444;
         }
         html.dark { --bg-main: var(--bg-dark); --text-main: var(--text-dark); --surface-main: var(--surface-dark); }
         html:not(.dark) { --bg-main: var(--bg-light); --text-main: var(--text-light); --surface-main: var(--surface-light); }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-main); color: var(--text-main); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-        .screen { display: none; width: 100%; height: 100%; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 1.25rem; box-sizing: border-box; position: absolute; top: 0; left: 0; opacity: 0; transition: opacity 0.5s ease-in-out; }
-        .screen.active { display: flex; opacity: 1; z-index: 10; }
-        .btn { padding: 0.75rem 1.75rem; font-size: 1rem; font-weight: 600; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s ease; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.1); }
+        body { font-family: 'Inter', 'Noto Sans Telugu', system-ui, -apple-system, sans-serif; background-color: var(--bg-main); color: var(--text-main); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; overflow: hidden; }
+        .btn { padding: 0.75rem 1.75rem; font-size: 1rem; font-weight: 600; border-radius: 0.75rem; cursor: pointer; transition: all 0.2s ease; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 8px rgba(0,0,0,0.15); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .input-field { width: 100%; padding: 0.75rem; border: 1px solid #4b5563; background-color: #374151; color: white; border-radius: 0.5rem; }
-        html:not(.dark) .input-field { border: 1px solid #d1d5db; background-color: #f3f4f6; color: #1f2937;}
+        .input-field { width: 100%; padding: 0.75rem; border: 2px solid #4b5563; background-color: #374151; color: white; border-radius: 0.75rem; transition: all 0.2s; }
+        html:not(.dark) .input-field { border: 2px solid #d1d5db; background-color: #f3f4f6; color: #1f2937;}
+        .input-field:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(192, 38, 211, 0.3); }
 
-        /* Flip Card Animation Styles */
-        .chit-scene { width: 220px; height: 300px; perspective: 1000px; cursor: pointer; }
-        .chit { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1); }
-        .chit.is-flipped { transform: rotateY(180deg); }
-        .chit-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 1rem; box-shadow: 0 8px 20px rgba(0,0,0,0.3); display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
-        .chit-front { background: linear-gradient(135deg, #4b5563, #1f2937); color: white; }
-        .chit-back { background: linear-gradient(135deg, #fef08a, #eab308); color: #422006; transform: rotateY(180deg); }
-        
-        .confetti { position: absolute; animation-timing-function: linear; user-select: none; }
-        @keyframes fall { to { top: 120%; transform: rotate(${Math.random() * 720}deg); } }
-        
-        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.25); opacity: 0.75; } }
-        .pulse-dot { animation: pulse 1.5s infinite; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .fade-in { animation: fadeIn 0.5s ease-in forwards; }
+
+        .night-phase { background: #111827; }
+        .day-phase { background: #dbeafe; }
+        html.dark .day-phase { background: #1e3a8a; }
+
+        .role-werewolf { color: #ef4444; }
+        .role-villager { color: #22c55e; }
+        .role-seer { color: #3b82f6; }
+        .role-doctor { color: #ec4899; }
     </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Telugu:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div id="root" class="bg-[var(--bg-main)] text-[var(--text-main)]"></div>
-
+    <div id="root"></div>
     <script type="text/babel" data-type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, arrayUnion, writeBatch, deleteField, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, writeBatch, deleteField, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
         const { useState, useEffect, useCallback, useRef } = React;
 
-        // --- Sound Manager ---
-        const playSound = (() => {
-            let sounds;
-            return (sound, note = 'C4', duration = '8n') => {
-                if (!sounds) {
-                    sounds = {
-                        flip: new Tone.Synth({ oscillator: { type: 'sine' } }).toDestination(),
-                        click: new Tone.PolySynth(Tone.Synth).toDestination(),
-                        win: new Tone.Synth({ oscillator: { type: 'triangle8' } }).toDestination(),
-                        lose: new Tone.Synth({ oscillator: { type: 'sawtooth' } }).toDestination(),
-                        message: new Tone.MembraneSynth().toDestination(),
-                    };
-                }
-                if (Tone.context.state === 'running') sounds[sound].triggerAttackRelease(note, duration);
-            };
-        })();
-
-        // --- UI Components ---
-        const Confetti = ({ type }) => {
-            if (!type) return null;
-            let symbols = ['🎉', '🎊', '✨', '🏆', '🥳'];
-            if (type === 'lose') symbols = ['😢', '👎', '☠️'];
-            
-            const confettiPieces = Array.from({ length: 50 }, (_, i) => {
-                const style = { left: `${Math.random() * 100}%`, top: `${-20}%`, fontSize: `${1 + Math.random() * 1.5}rem`, animation: `fall ${2 + Math.random() * 2}s linear ${Math.random() * 2}s forwards`};
-                return <div key={i} className="confetti" style={style}>{symbols[i % symbols.length]}</div>;
-            });
-            const style = document.createElement('style');
-            style.textContent = `@keyframes fall { to { top: 120%; transform: rotate(${Math.random() * 720}deg); } }`;
-            document.head.append(style);
-            return <div className="absolute inset-0 pointer-events-none">{confettiPieces}</div>;
-        };
-        
-        // --- Helper function ---
-        const findUidByRole = (roles, targetRole) => {
-            if (!roles) return null;
-            return Object.keys(roles).find(uid => roles[uid] === targetRole);
-        };
-        
-        // --- Translations Object ---
         const translations = {
-            en: { title: "Donga Police", subtitle: "Royal Chits Edition", enterName: "Enter Your Name", createRoom: "Create Room 👑", roomCode: "Room Code", join: "Join", lobby: "Lobby", roomCodeLabel: "Room Code:", playersJoined: "Players Joined:", startGame: "Start Game 🔥", waitingForHost: "Waiting for host to start...", need4Players: "Need at least 2 players to start.", yourRole: "Your Secret Role Is...", dontShow: "Don't show anyone! 🤫", clickToReveal: "Click to Reveal", waitingForOthers: "Waiting for others to reveal...", yourTurn: "Your turn to Guess!", waitingFor: "Waiting for", guessPrompt: (role) => `They must find the ${role === 'police' ? 'Donga 🕵️‍♂️' : 'Rani 👸'}`, yourGuessPrompt: (role) => `You must find the ${role === 'police' ? 'Donga 🕵️‍♂️' : 'Rani 👸'}`, gameOver: "Game Over!", guessBreakdown: "Guess Breakdown", policeGuessed: (pName, gName) => `Police (${pName}) guessed ${gName}.`, rajaGuessed: (pName, gName) => `Raja (${pName}) guessed ${gName}.`, guessCorrect: "Guess was Correct!", guessWrong: "Guess was Wrong!", theirRoleWas: (role) => `(Their role was ${role})`, finalRoles: "Final Roles", scoreboard: "Scoreboard 🏆", playNextRound: "Play Next Round 🔁", waitingForHostNewGame: "Waiting for host to start a new game...", saySomething: "Say something...", send: "Send", exitGame: "Exit Game", langButton: "Language", activePlayers: (count) => `Active Players: ${count}`, waitingListTitle: "Still waiting for:", voiceChat: "Voice Chat", settings: "Settings", theme: "Theme", light: "Light", dark: "Dark", showScores: "Show Scores", audioControls: "Audio Controls", muteAll: "Mute All", unmuteAll: "Unmute All", score: "Score", winnerPopupTitle: "Round Winner!", close: "Close" },
-            te: { title: "దొంగ పోలీస్", subtitle: "రాయల్ చీటీల ఆట", enterName: "Mee Peru Raayandi", createRoom: "Kotha Aata Modalettu 👑", roomCode: "Gadi Sanke", join: "Kalisi Aadandi", lobby: "Vechiyundu Gadi", roomCodeLabel: "Gadi Sanke:", playersJoined: "Aade Vallu:", startGame: "Aata Modalettu Ra 🔥", waitingForHost: "Yajamani kosam vechi chustunnam...", need4Players: "Modalettadaniki iddaru kavali.", yourRole: "Mee Goppa Paathra...", dontShow: "Evariki cheppoddu! 🤫", clickToReveal: "Chit Tippu", waitingForOthers: "Andaru tippే దాక ఆగు...", yourTurn: "Mee Vantu Vachindi!", waitingFor: "Kosam aaguthunnam", guessPrompt: (role) => `${role === 'police' ? 'Donga ni 🕵️‍♂️' : 'Rani ni 👸'} pattukovali`, yourGuessPrompt: (role) => `Miru ${role === 'police' ? 'Donga ni 🕵️‍♂️' : 'Rani ni 👸'} pattukovali`, gameOver: "Aata Aipoindhi!", guessBreakdown: "Guess-ula Vivarana", policeGuessed: (pName, gName) => `Police (${pName}) anukunnadi ${gName} ni.`, rajaGuessed: (pName, gName) => `Raja (${pName}) anukunnadi ${gName} ni.`, guessCorrect: "Correct-ga Chepparu!", guessWrong: "Tappu Chepparu!", theirRoleWas: (role) => `(Vaalla paathra ${role})`, finalRoles: "Asalu Paathralu", scoreboard: "Markula Patti 🏆", playNextRound: "Malli Aadudama? 🔁", waitingForHostNewGame: "Yajamani kotha aata modalettali...", saySomething: "Edokati cheppu...", send: "Pampu", exitGame: "Inti ki Podaam", langButton: "Bhaasha", activePlayers: (count) => `Aadutunna Vallu: ${count}`, waitingListTitle: "Ee pillalu inka chit choopincha ledu 👀:", voiceChat: "Maatalu", settings: "Amarikalu", theme: "Theme", light: "Velugu", dark: "Cheekati", showScores: "Score-lu Chudu", audioControls: "Audio Niyantranalu", muteAll: "Andarini Mute Cheyi", unmuteAll: "Andarini Unmute Cheyi", score: "Markulu", winnerPopupTitle: "Gelichindi Eelle!", close: "Mooyi"},
-            hi: { title: "डोंगा పోలీస్", subtitle: "रॉयल चिट्स वाला खेल", enterName: "Apna Naam Daalo", createRoom: "Naya Khel Banao 👑", roomCode: "Kamra Code", join: "Shamil Ho", lobby: "Intezaar Ghar", roomCodeLabel: "Kamra Code:", playersJoined: "Khiladi Log:", startGame: "Khel Shuru Kar Bhai 🔥", waitingForHost: "Host ka intezaar hai...", need4Players: "Khelne ke liye 2 log chahiye.", yourRole: "Aapki Gupt Bhumika Hai...", dontShow: "Kisi ko mat dikhana! 🤫", clickToReveal: "Chit Palto", waitingForOthers: "Sab ke palatne ka intezar...", yourTurn: "Aapki Baari!", waitingFor: "Ka intezaar hai", guessPrompt: (role) => `Unhe ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, yourGuessPrompt: (role) => `Aapko ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, gameOver: "Khel Khatam!", guessBreakdown: "Guess ka Vivaran", policeGuessed: (pName, gName) => `Police (${pName}) ne ${gName} ko guess kiya.`, rajaGuessed: (pName, gName) => `Raja (${pName}) ne ${gName} ko guess kiya.`, guessCorrect: "Sahi Jawab!", guessWrong: "Galat Jawab!", theirRoleWas: (role) => `(Unki bhumika ${role} thi)`, finalRoles: "Asli Kirdaar", scoreboard: "Scoreboard 🏆", playNextRound: "Phir Se Khele? 🔁", waitingForHostNewGame: "Host ke naye game ka intezar...", saySomething: "Kuch बोलो...", send: "Bhejo", exitGame: "Game Chhodo", langButton: "Bhasha", activePlayers: (count) => `Kul Khiladi: ${count}`, waitingListTitle: "Yeh log abhi tak chupaye baithe hain 🤫:", voiceChat: "Baat-Cheet", settings: "Settings", theme: "Theme", light: "Roshni", dark: "Andhera", showScores: "Score Dekho", audioControls: "Audio Controls", muteAll: "Sabko Mute Karo", unmuteAll: "Sabko Unmute Karo", score: "Ank", winnerPopupTitle: "Vijeta!", close: "Band Karo" }
+            en: {
+                title: "Werewolf",
+                subtitle: "A game of deception & survival",
+                enterName: "Enter Your Name",
+                createRoom: "Create New Game 🐺",
+                join: "Join",
+                roomCode: "Room Code",
+                lobbyTitle: "Lobby",
+                playersJoined: (count) => `Players Joined (${count}):`,
+                host: "Host",
+                startGame: "Start Game",
+                needPlayers: (needed) => `Need at least ${needed} players`,
+                night: "Night",
+                day: "Day",
+                dayNum: (day) => `Day ${day}`,
+                players: "Players",
+                eliminated: "Eliminated",
+                alive: "Alive",
+                vote: "Vote",
+                yourRole: "Your Role",
+                werewolf_role: "🐺 Werewolf",
+                seer_role: "👁️ Seer",
+                doctor_role: "🧑‍⚕️ Doctor",
+                villager_role: "🧑‍🌾 Villager",
+                werewolf_action: "Who do you want to eliminate?",
+                seer_action: "Whose role do you want to see?",
+                doctor_action: "Who do you want to save?",
+                villager_action: "You sleep peacefully through the night.",
+                seer_result: (name, role) => `You see that ${name} is a ${role}.`,
+                connecting: "Connecting...",
+                error_name: "Please enter a name.",
+                error_code: "Please enter a room code.",
+                error_not_found: "Room not found!",
+                error_connect_failed: "Could not connect to game services."
+            },
+            te: {
+                title: "తోడేలు ఆట",
+                subtitle: "మోసం మరియు మనుగడ యొక్క ఆట",
+                enterName: "మీ పేరు నమోదు చేయండి",
+                createRoom: "కొత్త ఆట సృష్టించండి 🐺",
+                join: "చేరండి",
+                roomCode: "గది కోడ్",
+                lobbyTitle: "లాబీ",
+                playersJoined: (count) => `ఆటగాళ్ళు చేరారు (${count}):`,
+                host: "యజమాని",
+                startGame: "ఆట ప్రారంభించండి",
+                needPlayers: (needed) => `కనీసం ${needed} మంది ఆటగాళ్లు కావాలి`,
+                night: "రాత్రి",
+                day: "పగలు",
+                dayNum: (day) => `రోజు ${day}`,
+                players: "ఆటగాళ్ళు",
+                eliminated: "తొలగించబడ్డారు",
+                alive: "జీవించి ఉన్నారు",
+                vote: "ఓటు వేయండి",
+                yourRole: "మీ పాత్ర",
+                werewolf_role: "🐺 తోడేలు",
+                seer_role: "👁️ జ్యోతిష్యుడు",
+                doctor_role: "�‍⚕️ వైద్యుడు",
+                villager_role: "🧑‍🌾 గ్రామస్థుడు",
+                werewolf_action: "మీరు ఎవరిని తొలగించాలనుకుంటున్నారు?",
+                seer_action: "మీరు ఎవరి పాత్రను చూడాలనుకుంటున్నారు?",
+                doctor_action: "మీరు ఎవరిని కాపాడాలనుకుంటున్నారు?",
+                villager_action: "మీరు రాత్రి ప్రశాంతంగా నిద్రపోతారు.",
+                seer_result: (name, role) => `మీరు చూసిన ప్రకారం ${name} ఒక ${role}.`,
+                connecting: "కనెక్ట్ అవుతోంది...",
+                error_name: "దయచేసి పేరు నమోదు చేయండి.",
+                error_code: "దయచేసి గది కోడ్ నమోదు చేయండి.",
+                error_not_found: "గది కనుగొనబడలేదు!",
+                error_connect_failed: "గేమ్ సేవలకు కనెక్ట్ కాలేకపోయింది."
+            }
         };
+
+        function assignWerewolfRoles(playerIds, t) {
+            const playerCount = playerIds.length;
+            let rolesToAssign = [];
+            
+            // Basic roles from translation
+            const baseRoles = {
+                werewolf: t('werewolf_role'),
+                seer: t('seer_role'),
+                doctor: t('doctor_role'),
+                villager: t('villager_role')
+            };
+
+            let werewolfCount = Math.floor(playerCount / 4);
+            if (werewolfCount === 0) werewolfCount = 1;
+
+            rolesToAssign.push(...Array(werewolfCount).fill(baseRoles.werewolf));
+            if (playerCount > 3) rolesToAssign.push(baseRoles.seer);
+            if (playerCount > 4) rolesToAssign.push(baseRoles.doctor);
+
+            const villagerCount = playerCount - rolesToAssign.length;
+            rolesToAssign.push(...Array(villagerCount).fill(baseRoles.villager));
+
+            const shuffledRoles = rolesToAssign.sort(() => Math.random() - 0.5);
+            
+            const finalRoles = {};
+            playerIds.forEach((id, index) => {
+                finalRoles[id] = shuffledRoles[index];
+            });
+            return finalRoles;
+        }
         
-        const SettingsPanel = ({ isOpen, onClose, t, language, setLanguage, isDarkMode, setIsDarkMode, handleExit, gameData, userId, audio }) => {
-            if (!isOpen) return null;
+        const HomeScreen = ({ setUsername, createRoom, joinRoom, error, t, setLanguage }) => {
+            const [roomCodeInput, setRoomCodeInput] = useState('');
 
-            const [showScores, setShowScores] = useState(false);
-            const languages = { en: 'English 🇬🇧', te: 'తెలుగు 🇮🇳', hi: 'हिन्दी 🇮🇳' };
-            const allVoiceUsers = [ { uid: userId, isMuted: audio.isMicMuted }, ...audio.remoteUsers.map(u => ({...u, isMuted: audio.playerMuteStates[u.uid] }))];
-            
-            const sortedPlayers = gameData ? Object.values(gameData.players).sort((a,b) => b.score - a.score) : [];
-            const topScore = sortedPlayers.length > 0 ? sortedPlayers[0].score : 0;
-            
             return (
-                <>
-                <div className="fixed inset-0 bg-black/60 z-40" onClick={onClose}></div>
-                <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[var(--surface-main)] w-full max-w-lg p-6 rounded-2xl shadow-2xl z-50">
-                    <h2 className="text-2xl font-bold mb-6 text-center">{t('settings')}</h2>
+                <div className="w-full max-w-md bg-[var(--surface-main)] p-8 rounded-2xl shadow-xl space-y-6 fade-in">
+                    <h1 className="text-4xl font-bold text-center text-[var(--primary)]">{t('title')}</h1>
+                    <p className="text-center text-lg">{t('subtitle')}</p>
                     
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium mb-1">{t('langButton')}</label>
-                        <select value={language} onChange={e => setLanguage(e.target.value)} className="input-field w-full">
-                           {Object.entries(languages).map(([code, name]) => <option key={code} value={code}>{name}</option>)}
-                        </select>
-                    </div>
-
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium mb-1">{t('theme')}</label>
-                        <div className="flex items-center gap-2 rounded-lg bg-gray-200 dark:bg-gray-700 p-1">
-                           <button onClick={() => setIsDarkMode(false)} className={`w-full p-2 rounded ${!isDarkMode ? 'bg-white dark:bg-gray-500 shadow' : ''}`}>{t('light')} ☀️</button>
-                           <button onClick={() => setIsDarkMode(true)} className={`w-full p-2 rounded ${isDarkMode ? 'bg-white dark:bg-gray-800 shadow' : ''}`}>{t('dark')} 🌙</button>
+                    {error && <p className="text-red-500 text-center font-semibold">{error}</p>}
+                    
+                    <input onChange={e => setUsername(e.target.value)} type="text" className="input-field text-center" placeholder={t('enterName')} />
+                    
+                    <div className="space-y-3">
+                        <button onClick={createRoom} className="btn bg-[var(--primary)] text-white w-full">{t('createRoom')}</button>
+                        <div className="flex items-center gap-3">
+                            <input value={roomCodeInput} onChange={e => setRoomCodeInput(e.target.value.toUpperCase())} type="text" className="input-field uppercase flex-grow" placeholder={t('roomCode')} />
+                            <button onClick={() => joinRoom(roomCodeInput)} className="btn bg-gray-600 text-white">{t('join')}</button>
                         </div>
                     </div>
+                     <div className="text-center">
+                        <select onChange={(e) => setLanguage(e.target.value)} defaultValue="te" className="input-field">
+                            <option value="en">English</option>
+                            <option value="te">తెలుగు</option>
+                        </select>
+                    </div>
+                </div>
+            );
+        };
+        
+        const LobbyScreen = ({ gameData, userId, getGameRef, t }) => {
+            const { hostId, players, roomCode } = gameData;
+            const isHost = hostId === userId;
+            const canStart = Object.keys(players).length >= 4;
 
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium mb-1">{t('audioControls')}</label>
-                        <div className="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg max-h-40 overflow-y-auto">
-                            {allVoiceUsers.map(user => {
-                                const isSelf = user.uid === userId;
-                                const name = gameData?.players[user.uid]?.name || 'Player';
-                                const isMutedForMe = audio.playerMuteStates[user.uid];
-                                const isSpeaking = audio.activeSpeakerUid === user.uid;
+            const startGame = async () => {
+                const playerIds = Object.keys(players);
+                const newRoles = assignWerewolfRoles(playerIds, t);
+                await updateDoc(getGameRef(roomCode), { 
+                    gameState: 'night', 
+                    roles: newRoles,
+                    turn: 'night',
+                    day: 1,
+                    votes: {},
+                    werewolfAction: {},
+                    seerAction: null,
+                    doctorAction: null,
+                    eliminated: {}
+                });
+            };
 
+            return (
+                <div className="w-full max-w-md bg-[var(--surface-main)] p-8 rounded-2xl shadow-xl fade-in">
+                    <h2 className="text-3xl font-bold">{t('lobbyTitle')}</h2>
+                    <div className="text-lg my-2">{t('roomCode')}: <span className="font-bold text-[var(--primary)] tracking-widest">{roomCode}</span></div>
+                    <div className="space-y-2 my-6 min-h-[150px] bg-gray-200 dark:bg-gray-800 p-4 rounded-lg">
+                        <h3 className="font-bold text-lg mb-2">{t('playersJoined', Object.keys(players).length)}</h3>
+                        {Object.values(players).map(p => (
+                            <div key={p.uid} className="bg-gray-300 dark:bg-gray-700 p-3 rounded-lg font-semibold flex items-center justify-between">
+                                {p.name} {p.uid === hostId && '👑'}
+                            </div>
+                        ))}
+                    </div>
+                    {isHost ? (
+                        <button onClick={startGame} disabled={!canStart} className="btn bg-[var(--primary)] text-white w-full">
+                            {canStart ? t('startGame') : t('needPlayers', 4)}
+                        </button>
+                    ) : <p>{t('waitingForHost')}</p>}
+                </div>
+            );
+        };
+        
+        function GameScreen({ gameData, userId, getGameRef, t }) {
+            const { players, roles, turn, eliminated, votes, day } = gameData;
+            const myRole = roles[userId];
+            const isAlive = !eliminated || !eliminated[userId];
+
+            const handleVote = async (targetId) => {
+                if (!isAlive || turn !== 'day') return;
+                await updateDoc(getGameRef(gameData.roomCode), {
+                    [`votes.${userId}`]: targetId
+                });
+            };
+
+            const alivePlayers = Object.keys(players).filter(pId => !eliminated || !eliminated[pId]);
+
+            return (
+                <div className={`w-full h-full p-4 md:p-8 flex flex-col items-center justify-center transition-colors duration-1000 ${turn === 'night' ? 'night-phase' : 'day-phase'}`}>
+                    <div className="text-center mb-6">
+                        <h1 className="text-4xl font-bold">{turn === 'night' ? t('night') : t('day')} 🌙</h1>
+                        <p>{t('dayNum', day)}</p>
+                    </div>
+
+                    <div className="w-full max-w-4xl bg-[var(--surface-main)] p-6 rounded-2xl shadow-lg">
+                        <h2 className="text-2xl font-bold mb-4">{t('players')}</h2>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {Object.entries(players).map(([pId, player]) => {
+                                const isPlayerEliminated = eliminated && eliminated[pId];
+                                const voteCount = votes ? Object.values(votes).filter(v => v === pId).length : 0;
                                 return (
-                                <div key={user.uid} className={`flex items-center justify-between p-2 rounded ${isSpeaking ? 'bg-green-500/20' : ''}`}>
-                                    <span className={isSpeaking ? 'font-bold text-green-400' : ''}>{name} {isSelf ? '(You)' : ''}</span>
-                                    {isSelf ? (
-                                        <button onClick={audio.handleSelfMute} className={`text-2xl`}>{audio.isMicMuted ? '🔇' : '🎤'}</button>
-                                    ) : (
-                                        <button onClick={() => audio.handleRemoteMute(user, !isMutedForMe)} className="text-2xl">{isMutedForMe ? '🔈' : '🔊'}</button>
-                                    )}
-                                </div>
-                                )
+                                    <div key={pId} className={`p-4 rounded-lg text-center ${isPlayerEliminated ? 'bg-red-900/50 opacity-50' : 'bg-gray-200 dark:bg-gray-700'}`}>
+                                        <p className="font-bold text-lg">{player.name}</p>
+                                        {isPlayerEliminated ? <p className="text-sm">{t('eliminated')}</p> : <p className="text-sm">{t('alive')}</p>}
+                                        {turn === 'day' && isAlive && !isPlayerEliminated && (
+                                            <button onClick={() => handleVote(pId)} className={`mt-2 btn w-full text-xs ${votes && votes[userId] === pId ? 'bg-[var(--primary)] text-white' : 'bg-gray-400'}`}>
+                                                {t('vote')} {voteCount > 0 ? `(${voteCount})` : ''}
+                                            </button>
+                                        )}
+                                    </div>
+                                );
                             })}
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mt-6">
-                        <button onClick={() => setShowScores(true)} className="btn bg-blue-600 text-white w-full">{t('showScores')}</button>
-                        <button onClick={handleExit} className="btn bg-red-600 text-white w-full">{t('exitGame')}</button>
+                    <div className="w-full max-w-4xl bg-[var(--surface-main)] p-6 rounded-2xl shadow-lg mt-6">
+                        <h3 className="text-xl font-bold">{t('yourRole')}: <span className={myRole.includes('🐺') ? 'role-werewolf' : myRole.includes('👁️') ? 'role-seer' : 'role-villager'}>{myRole}</span></h3>
+                        {turn === 'night' && isAlive && (
+                            <NightActionPanel gameData={gameData} userId={userId} myRole={myRole} alivePlayers={alivePlayers} getGameRef={getGameRef} t={t} />
+                        )}
                     </div>
-                </div>
-                {showScores && (
-                    <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50" onClick={() => setShowScores(false)}>
-                        <div className="bg-[var(--surface-main)] p-6 rounded-xl shadow-lg w-full max-w-sm" onClick={e => e.stopPropagation()}>
-                            <h3 className="font-bold mb-4 text-xl text-center">{t('scoreboard')}</h3>
-                            <div className="space-y-2">
-                            {sortedPlayers.map(p => (
-                                <div key={p.name} className={`flex justify-between items-center p-2 rounded-lg ${p.score === topScore && topScore > 0 ? 'bg-yellow-400/20' : 'bg-gray-200 dark:bg-gray-700'}`}>
-                                    <span className="font-semibold">{p.name} {p.score === topScore && topScore > 0 ? '👑' : ''}</span>
-                                    <span className="font-bold">{p.score}</span>
-                                </div>
-                            ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
-                </>
-            )
-        };
-        
-        const HomeScreen = ({ setUsername, createRoom, joinRoom, t }) => {
-            const [roomCodeInput, setRoomCodeInput] = useState('');
-            const handleAction = async (action, arg) => { await Tone.start(); playSound('click'); action(arg); }
-            return (
-                 <div className="w-full max-w-md bg-[var(--surface-main)] p-8 rounded-2xl shadow-xl space-y-6">
-                    <h1 className="text-4xl font-bold text-[var(--primary)]">{t('title')}</h1>
-                    <p className="text-xl font-semibold -mt-4">{t('subtitle')}</p>
-                    <input onChange={e => setUsername(e.target.value)} type="text" className="input-field text-center" placeholder={t('enterName')} />
-                    <div className="space-y-3">
-                        <button onClick={() => handleAction(createRoom)} className="btn bg-blue-600 text-white w-full">{t('createRoom')}</button>
-                        <div className="flex items-center gap-3">
-                            <input value={roomCodeInput} onChange={e => setRoomCodeInput(e.target.value.toUpperCase())} type="text" className="input-field uppercase" placeholder={t('roomCode')} />
-                            <button onClick={() => handleAction(joinRoom, roomCodeInput)} className="btn bg-gray-600 text-white">{t('join')}</button>
-                        </div>
-                    </div>
-                     <p className="text-xs text-center text-gray-500 pt-4">A game by Krishnakanth</p>
                 </div>
             );
         }
         
-        const LobbyScreen = ({ gameData, userId, getGameRef, t }) => {
-            if (!userId) return null;
-            const { hostId, players, roomCode } = gameData;
-            const isHost = hostId === userId;
-            const canStart = Object.keys(players).length >= 2;
-            
-            const startGame = async () => {
-                playSound('click');
-                const playerIds = Object.keys(players);
-                let coreRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani'];
-                let extraRoles = ['🪖 General Commander', '🎖️ Commander', '🧠 Mantri', '🤓 Batulu'];
-                let assignedRoles = [];
-                if (playerIds.length <= 4) {
-                    assignedRoles = coreRoles.slice(0, playerIds.length);
-                } else {
-                    assignedRoles = [...coreRoles];
-                    let extraIndex = 0;
-                    while(assignedRoles.length < playerIds.length) {
-                        assignedRoles.push(extraRoles[extraIndex % extraRoles.length]);
-                        extraIndex++;
-                    }
+        function NightActionPanel({ gameData, userId, myRole, alivePlayers, getGameRef, t }) {
+            const { players, werewolfAction, seerAction, doctorAction, roles } = gameData;
+
+            const handleAction = (targetId) => {
+                const update = {};
+                if (myRole.includes('🐺')) { // Werewolf
+                    update[`werewolfAction.${userId}`] = targetId;
+                } else if (myRole.includes('👁️')) { // Seer
+                    update.seerAction = targetId;
+                } else if (myRole.includes('🧑‍⚕️')) { // Doctor
+                    update.doctorAction = targetId;
                 }
-                const shuffledRoles = assignedRoles.sort(() => Math.random() - 0.5);
-                const roles = {};
-                playerIds.forEach((id, idx) => roles[id] = shuffledRoles[idx]);
-                
-                const updates = {};
-                updates.gameState = 'reveal';
-                updates.roles = roles;
-                playerIds.forEach(id => {
-                    updates[`players.${id}.revealed`] = false;
-                });
-                
-                await updateDoc(getGameRef(roomCode), updates);
-            };
-
-            return (
-                <div className="w-full max-w-md bg-[var(--surface-main)] p-8 rounded-2xl shadow-xl">
-                    <h2 className="text-3xl font-bold mb-2">{t('lobby')}</h2>
-                    <p>{t('roomCodeLabel')} <strong className="text-2xl text-[var(--primary)] tracking-widest">{roomCode}</strong></p>
-                    <div className="space-y-2 my-6 min-h-[150px] bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
-                        <h3 className="font-bold text-lg mb-2">{t('playersJoined')}</h3>
-                        {Object.values(players).map(p => <div key={p.name} className="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg font-semibold flex justify-between items-center"><span>{p.name} (Score: {p.score})</span> <span className="text-green-500">✔</span></div>)}
-                    </div>
-                    {isHost && <button onClick={startGame} disabled={!canStart} className="btn bg-blue-600 text-white w-full text-xl">{t('startGame')}</button>}
-                    {!isHost && <p>{t('waitingForHost')}</p>}
-                    {!canStart && <p className="text-sm text-yellow-500 mt-2">{t('need4Players')}</p>}
-                </div>
-            );
-        };
-        
-        const RevealScreen = ({ gameData, userId, getGameRef, t }) => {
-            const { players, roles, roomCode } = gameData;
-            const myPlayer = players[userId];
-            const myRole = roles?.[userId]; 
-            
-            if (!myRole) {
-                return <div className="text-center"><div className="text-2xl animate-spin">⏳</div>Loading Role...</div>;
-            }
-
-            const [emoji, ...nameParts] = myRole.split(' ');
-            const name = nameParts.join(' ');
-            const totalPlayers = Object.keys(players).length;
-            const unrevealedPlayers = Object.values(players).filter(p => !p.revealed);
-            
-            const handleReveal = async () => {
-                if(myPlayer.revealed) return;
-                await Tone.start(); playSound('flip');
-                await updateDoc(getGameRef(roomCode), { [`players.${userId}.revealed`]: true });
+                updateDoc(getGameRef(gameData.roomCode), update);
             };
             
-            useEffect(() => {
-                if (unrevealedPlayers.length === 0 && Object.keys(players).length > 0) {
-                    const timer = setTimeout(() => {
-                        if (getGameRef && roomCode) {
-                            updateDoc(getGameRef(roomCode), { gameState: 'police_guess' });
-                        }
-                    }, 2000);
-                    return () => clearTimeout(timer);
-                }
-            }, [players, getGameRef, roomCode, unrevealedPlayers.length]);
-            
-            return (
-                <div className="flex flex-col items-center w-full max-w-lg">
-                    <h2 className="text-3xl font-bold mb-2">{t('yourRole')}</h2>
-                    <p className="mb-6">{t('dontShow')}</p>
-                    <div className="chit-scene" onClick={handleReveal}>
-                        <div className={`chit ${myPlayer.revealed ? 'is-flipped' : ''}`}>
-                            <div className="chit-face chit-front flex flex-col justify-center items-center"><div className="text-3xl">🎴</div><div className="font-bold text-xl mt-2">{t('clickToReveal')}</div></div>
-                            <div className="chit-face chit-back flex flex-col justify-center items-center"><div className="text-7xl">{emoji}</div><div className="text-2xl font-bold mt-2">{name}</div></div>
-                        </div>
-                    </div>
-                    {unrevealedPlayers.length > 0 ? (
-                        <div className="w-full mt-8 p-4 bg-slate-800/50 rounded-lg text-center">
-                            <p className="font-bold text-lg mb-3">{t('activePlayers', totalPlayers)}</p>
-                            <h3 className="font-semibold text-yellow-400 mb-3">{t('waitingListTitle')}</h3>
-                            <div className="flex flex-wrap justify-center gap-2">
-                                {unrevealedPlayers.map(player => ( <span key={player.name} className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm font-medium me-2 px-3 py-1.5 rounded-full">{player.name}</span> ))}
-                            </div>
-                        </div>
-                    ) : ( <p className="text-lg mt-8 opacity-100 transition-opacity">{t('waitingForOthers')}</p> )}
-                </div>
-            );
-        };
-        
-        const GuessScreen = ({ gameData, userId, getGameRef, t }) => {
-            const { gameState, roles, players, roomCode } = gameData;
-            const policeId = findUidByRole(roles, '👮 Police');
-            const rajaId = findUidByRole(roles, '👑 Raja');
-            const isMyTurn = (gameState === 'police_guess' && userId === policeId) || (gameState === 'raja_guess' && userId === rajaId);
-            const currentGuesser = players[gameState === 'police_guess' ? policeId : rajaId];
-            const prompt = isMyTurn ? t('yourGuessPrompt', gameState === 'police_guess' ? 'police' : 'raja') : t('guessPrompt', gameState === 'police_guess' ? 'police' : 'raja');
-            const waitingText = `${t('waitingFor')} ${currentGuesser?.name || '...'}`;
-            
-            const handleGuess = async (guessedId) => {
-                playSound('click');
-                const nextState = gameState === 'police_guess' ? 'raja_guess' : 'result';
-                const guessField = gameState === 'police_guess' ? 'policeGuess' : 'rajaGuess';
-                
-                if (nextState === 'result') {
-                    const dongaId = findUidByRole(roles, '🕵️‍♂️ Donga');
-                    const raniId = findUidByRole(roles, '👸 Rani');
-                    const policeGuessedCorrectly = gameData.policeGuess === dongaId;
-                    const rajaGuessedCorrectly = guessedId === raniId;
-
-                    const pointsMap = { '🪖 General Commander': 1500, '🎖️ Commander': 1200, '👑 Raja': 900, '👸 Rani': 800, '👮 Police': 500, '🧠 Mantri': 600, '🤓 Batulu': 300, '🕵️‍♂️ Donga': 2000 };
-                    const scoreUpdates = {};
-                    
-                    if (policeGuessedCorrectly) {
-                         if (policeId) scoreUpdates[`players.${policeId}.score`] = increment(pointsMap['👮 Police']);
-                    } else {
-                         if (dongaId) scoreUpdates[`players.${dongaId}.score`] = increment(pointsMap['🕵️‍♂️ Donga']);
-                    }
-
-                    if (rajaGuessedCorrectly) {
-                        if (rajaId) scoreUpdates[`players.${rajaId}.score`] = increment(pointsMap['👑 Raja']);
-                        if (raniId) scoreUpdates[`players.${raniId}.score`] = increment(pointsMap['👸 Rani']);
-                    }
-                    
-                    Object.entries(roles).forEach(([uid, role]) => {
-                         if (['🪖 General Commander', '🎖️ Commander', '🧠 Mantri', '🤓 Batulu'].includes(role)) {
-                             scoreUpdates[`players.${uid}.score`] = increment(pointsMap[role]);
-                         }
-                    });
-
-                    let winType, dialogue;
-                    if (policeGuessedCorrectly) { winType = 'one_win'; dialogue = "Police found the Donga!"; } 
-                    else { winType = 'lose'; dialogue = "Donga escaped!"; }
-                    
-                    await updateDoc(getGameRef(roomCode), { 
-                        ...scoreUpdates,
-                        gameState: 'result',
-                        result: { winType, dialogue, policeGuess: gameData.policeGuess, rajaGuess: guessedId, policeGuessCorrect: policeGuessedCorrectly, rajaGuessCorrect: rajaGuessedCorrectly }
-                    });
-                } else {
-                     await updateDoc(getGameRef(roomCode), { gameState: nextState, [guessField]: guessedId });
-                }
-            };
-
-            return (
-                <div className="text-center w-full max-w-lg bg-[var(--surface-main)] p-8 rounded-2xl shadow-xl">
-                    <h2 className="text-3xl font-bold">{isMyTurn ? t('yourTurn') : waitingText}</h2>
-                    <p className="text-xl my-4">{prompt}</p>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
-                        {isMyTurn && Object.entries(players).map(([uid, player]) => {
-                            if (uid !== userId) return <button key={uid} onClick={() => handleGuess(uid)} className="btn bg-blue-600 text-white p-4 h-20">{player.name}</button>;
-                            return null;
-                        })}
-                    </div>
-                </div>
-            );
-        };
-
-        const ResultScreen = ({ gameData, userId, getGameRef, t }) => {
-            const { hostId, roles, players, result, roomCode } = gameData;
-            if (!result || !roles || !players) return <div className="text-white">Loading results...</div>;
-            
-            const sortedPlayers = Object.values(players).sort((a,b) => b.score - a.score);
-            const topScore = sortedPlayers.length > 0 ? sortedPlayers[0].score : 0;
-
-            const isHost = hostId === userId;
-            const playAgain = async () => {
-                playSound('click');
-                const playerIds = Object.keys(players);
-                // Assign new roles for the next round
-                let coreRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani'];
-                let extraRoles = ['🪖 General Commander', '🎖️ Commander', '🧠 Mantri', '🤓 Batulu'];
-                let assignedRoles = [];
-                if (playerIds.length <= 4) {
-                    assignedRoles = coreRoles.slice(0, playerIds.length);
-                } else {
-                    assignedRoles = [...coreRoles];
-                    let extraIndex = 0;
-                    while(assignedRoles.length < playerIds.length) {
-                        assignedRoles.push(extraRoles[extraIndex % extraRoles.length]);
-                        extraIndex++;
-                    }
-                }
-                const shuffledRoles = assignedRoles.sort(() => Math.random() - 0.5);
-                const newRoles = {};
-                playerIds.forEach((id, idx) => newRoles[id] = shuffledRoles[idx]);
-
-                const updates = {};
-                updates.gameState = 'reveal';
-                updates.roles = newRoles;
-                updates.result = null;
-                updates.policeGuess = null;
-                updates.rajaGuess = null;
-                
-                Object.keys(players).forEach(uid => {
-                    updates[`players.${uid}.revealed`] = false;
-                });
-
-                await updateDoc(getGameRef(roomCode), updates);
-            };
-
-            const policeUid = findUidByRole(roles, '👮 Police');
-            const policeName = players[policeUid]?.name || '...';
-            const rajaUid = findUidByRole(roles, '👑 Raja');
-            const rajaName = players[rajaUid]?.name || '...';
-            const playerGuessedByPoliceName = players[result.policeGuess]?.name || 'N/A';
-            const playerGuessedByPoliceRole = roles[result.policeGuess] || 'N/A';
-            const playerGuessedByRajaName = players[result.rajaGuess]?.name || 'N/A';
-            const playerGuessedByRajaRole = roles[result.rajaGuess] || 'N/A';
-
-            return (
-                <div className="w-full max-w-2xl bg-[var(--surface-main)] p-6 md:p-8 rounded-2xl shadow-2xl text-center relative overflow-hidden">
-                    <Confetti type={result.winType} />
-                    <h2 className="text-3xl font-bold mb-4">{result.dialogue}</h2>
-                    <div className="mt-6 space-y-4">
-                        <h3 className="text-xl font-semibold text-center text-slate-200 border-b border-slate-600 pb-2 mb-4">{t('guessBreakdown')}</h3>
-                        <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
-                            <div className="flex items-start text-left"><span className="text-2xl mr-4">{result.policeGuessCorrect ? '✅' : '❌'}</span>
-                                <div>
-                                    <p className="font-semibold text-slate-100">{t('policeGuessed', policeName, playerGuessedByPoliceName)}</p>
-                                    <p className={`mt-1 text-sm font-bold ${result.policeGuessCorrect ? 'text-green-400' : 'text-red-400'}`}>{result.policeGuessCorrect ? t('guessCorrect') : t('guessWrong')}</p>
-                                    <p className="text-xs text-slate-400 mt-1">{t('theirRoleWas', playerGuessedByPoliceRole)}</p>
+            const renderActionForRole = () => {
+                switch(true) {
+                    case myRole.includes('🐺'):
+                        return (
+                            <div>
+                                <h4 className="font-bold mt-2">{t('werewolf_action')}</h4>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {alivePlayers.filter(pId => !roles[pId].includes('🐺') && pId !== userId).map(pId => (
+                                        <button key={pId} onClick={() => handleAction(pId)} className={`btn ${werewolfAction && werewolfAction[userId] === pId ? 'bg-red-600' : 'bg-gray-600'}`}>{players[pId].name}</button>
+                                    ))}
                                 </div>
                             </div>
-                        </div>
-                        <div className="bg-slate-700/50 p-4 rounded-lg border border-slate-600">
-                            <div className="flex items-start text-left"><span className="text-2xl mr-4">{result.rajaGuessCorrect ? '✅' : '❌'}</span>
-                                <div>
-                                    <p className="font-semibold text-slate-100">{t('rajaGuessed', rajaName, playerGuessedByRajaName)}</p>
-                                    <p className={`mt-1 text-sm font-bold ${result.rajaGuessCorrect ? 'text-green-400' : 'text-red-400'}`}>{result.rajaGuessCorrect ? t('guessCorrect') : t('guessWrong')}</p>
-                                    <p className="text-xs text-slate-400 mt-1">{t('theirRoleWas', playerGuessedByRajaRole)}</p>
+                        );
+                    case myRole.includes('👁️'):
+                        return (
+                             <div>
+                                <h4 className="font-bold mt-2">{t('seer_action')}</h4>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {alivePlayers.filter(pId => pId !== userId).map(pId => (
+                                        <button key={pId} onClick={() => handleAction(pId)} className={`btn ${seerAction === pId ? 'bg-blue-600' : 'bg-gray-600'}`}>{players[pId].name}</button>
+                                    ))}
+                                </div>
+                                {seerAction && <p className="mt-2">{t('seer_result', players[seerAction].name, roles[seerAction])}</p>}
+                            </div>
+                        );
+                    case myRole.includes('🧑‍⚕️'):
+                        return (
+                            <div>
+                                <h4 className="font-bold mt-2">{t('doctor_action')}</h4>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {alivePlayers.map(pId => (
+                                        <button key={pId} onClick={() => handleAction(pId)} className={`btn ${doctorAction === pId ? 'bg-pink-600' : 'bg-gray-600'}`}>{players[pId].name}</button>
+                                    ))}
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-6">
-                        <div className="space-y-2 text-left bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
-                            <h3 className="font-bold mb-2 text-lg">{t('finalRoles')}</h3>
-                            {Object.keys(roles).map(uid => <p key={uid} className="text-sm"><strong>{players[uid].name}:</strong> {roles[uid]}</p>)}
-                        </div>
-                        <div className="space-y-2 text-left bg-gray-100 dark:bg-gray-800 p-4 rounded-lg">
-                            <h3 className="font-bold mb-2 text-lg">{t('scoreboard')}</h3>
-                            {sortedPlayers.map(p => <p key={p.name} className={`text-sm ${p.score === topScore && topScore > 0 ? 'font-bold text-yellow-400' : ''}`}><strong>{p.name}:</strong> {p.score} pts {p.score === topScore && topScore > 0 ? '👑' : ''}</p>)}
-                        </div>
-                    </div>
-                    {isHost && <button onClick={playAgain} className="btn bg-blue-600 text-white w-full mt-4">{t('playNextRound')}</button>}
-                    {!isHost && <p className="mt-4">{t('waitingForHostNewGame')}</p>}
-                </div>
-            );
-        };
-        
-        const Chat = ({ gameData, username, getGameRef, t }) => {
-            const [chatInput, setChatInput] = useState('');
-            const [isOpen, setIsOpen] = useState(false);
-            const [hasNewMessage, setHasNewMessage] = useState(false);
-            const messagesEndRef = useRef(null);
-            const chatLengthRef = useRef(gameData.chat?.length || 0);
-            useEffect(() => {
-                const currentChatLength = gameData.chat?.length || 0;
-                if (currentChatLength > chatLengthRef.current && !isOpen) { setHasNewMessage(true); playSound('message', 'G5', '16n'); }
-                chatLengthRef.current = currentChatLength;
-                if(isOpen) { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }
-            }, [gameData.chat, isOpen]);
-            const handleSubmit = async (e) => {
-                e.preventDefault();
-                if (!chatInput.trim()) return;
-                playSound('message', 'C5', '16n');
-                await updateDoc(getGameRef(gameData.roomCode), { chat: arrayUnion({ name: username, text: chatInput, time: new Date().toISOString() }) });
-                setChatInput('');
+                        );
+                    default:
+                        return <p className="mt-2">{t('villager_action')}</p>
+                }
             };
-            const toggleChat = () => { if (!isOpen) { setHasNewMessage(false); } setIsOpen(!isOpen); };
-            return (
-                 <div className="fixed bottom-4 right-4 z-50">
-                    <div className="flex flex-col items-end gap-3">
-                        <div id="chat-window" className="w-80 h-96 bg-[var(--surface-main)] rounded-xl shadow-2xl flex-col border border-gray-300 dark:border-gray-700" style={{ display: isOpen ? 'flex' : 'none' }}>
-                            <div id="chat-messages" className="flex-grow p-3 overflow-y-auto text-left text-sm">
-                                {gameData.chat?.map((msg, i) => <div key={i} className="mb-2"><strong className="text-blue-400">{msg.name}:</strong> {msg.text}</div>)}
-                                <div ref={messagesEndRef} />
-                            </div>
-                            <form onSubmit={handleSubmit} className="flex p-2 border-t border-gray-300 dark:border-gray-600">
-                                <input value={chatInput} onChange={e => setChatInput(e.target.value)} className="input-field !rounded-r-none" placeholder={t('saySomething')} autoComplete="off" />
-                                <button type="submit" className="btn bg-blue-600 text-white !rounded-l-none">{t('send')}</button>
-                            </form>
-                        </div>
-                        <button id="chat-toggle" className="relative w-16 h-16 rounded-full text-3xl flex items-center justify-center bg-blue-600 text-white cursor-pointer shadow-lg" onClick={toggleChat}>
-                            {isOpen ? '🔽' : '💬'}
-                            {hasNewMessage && ( <span className="absolute top-0 right-0 block h-4 w-4 rounded-full bg-red-500 border-2 border-white dark:border-slate-800 pulse-dot"></span> )}
-                        </button>
-                    </div>
-                </div>
-            )
-        };
-        
-        // Main App Component must be defined after all the components it uses.
+            
+            return <div className="mt-4">{renderActionForRole()}</div>;
+        }
+
+
         const App = () => {
-            return <MainApp />
-        }
-
-        const MainApp = () => {
             const [gameState, setGameState] = useState('home');
             const [gameData, setGameData] = useState(null);
             const [userId, setUserId] = useState(null);
             const [username, setUsername] = useState('');
-            const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('dongaPoliceTheme') === 'dark');
-            const [language, setLanguage] = useState(localStorage.getItem('dongaPoliceLang') || 'en');
+            const [error, setError] = useState('');
             const [isFirebaseReady, setIsFirebaseReady] = useState(false);
-            const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-            
-            const agoraClient = useRef(null);
-            const localAudioTrack = useRef(null);
-            const [remoteUsers, setRemoteUsers] = useState([]);
-            const [isMicMuted, setIsMicMuted] = useState(() => localStorage.getItem('dongaPoliceMutePref') === 'true');
-            const [activeSpeakerUid, setActiveSpeakerUid] = useState(null);
-            const [playerMuteStates, setPlayerMuteStates] = useState({});
+            const [language, setLanguage] = useState('te');
 
             const dbRef = useRef();
             const gameUnsubscribe = useRef(null);
             
-            const appId = 'donga-police-game';
-            const agoraAppId = '1e4b8677cbf34cf59f8850d9c4485cad';
+            const appId = 'werewolf-game-v1';
             const getGameRef = (code) => doc(dbRef.current, `artifacts/${appId}/public/data/games`, code);
             
-            useEffect(() => {
-                const firebaseConfig = { apiKey: "AIzaSyCp8UFvV6eOVACbaLq7ylOjEZOBitUMkfc", authDomain: "dongapolice-24f1c.firebaseapp.com", projectId: "dongapolice-24f1c", storageBucket: "dongapolice-24f1c.appspot.com", messagingSenderId: "797826379293", appId: "1:797826379293:web:92a7231a8891be6527e0f4" };
-                const app = initializeApp(firebaseConfig);
-                dbRef.current = getFirestore(app);
-                const auth = getAuth(app);
-                signInAnonymously(auth).then(() => {
-                    onAuthStateChanged(auth, user => { 
-                        if (user) setUserId(user.uid); 
-                        setIsFirebaseReady(true);
-                    });
-                });
-            }, []);
-
-            useEffect(() => {
-                document.documentElement.classList.toggle('dark', isDarkMode);
-                localStorage.setItem('dongaPoliceTheme', isDarkMode ? 'dark' : 'light');
-            }, [isDarkMode]);
+            const t = useCallback((key, ...args) => {
+                const value = translations[language]?.[key] || translations['en'][key];
+                return typeof value === 'function' ? value(...args) : value;
+            }, [language]);
             
-            useEffect(() => { localStorage.setItem('dongaPoliceLang', language); }, [language]);
-
             useEffect(() => {
-                const sessionFlagKey = 'adClickSessionTriggered';
-                if (sessionStorage.getItem(sessionFlagKey)) { return; }
-                const clickUrl = "https://toopsoug.net/4/9468874?var=policedonga_home";
-                const clickTbEventInit = () => {
-                    window.open(clickUrl, '_blank', 'noreferrer,noopener');
-                    sessionStorage.setItem(sessionFlagKey, 'true');
-                    document.removeEventListener('click', clickTbEventInit);
+                const firebaseConfig = { 
+                    apiKey: "AIzaSyCp8UFvV6eOVACbaLq7ylOjEZOBitUMkfc", 
+                    authDomain: "dongapolice-24f1c.firebaseapp.com", 
+                    projectId: "dongapolice-24f1c", 
                 };
-                const timerId = setTimeout(() => {
-                    document.addEventListener('click', clickTbEventInit);
-                }, 5000);
-                return () => { clearTimeout(timerId); document.removeEventListener('click', clickTbEventInit); };
-            }, []);
+                try {
+                    const app = initializeApp(firebaseConfig);
+                    dbRef.current = getFirestore(app);
+                    const auth = getAuth(app);
+                    signInAnonymously(auth).then(() => {
+                        onAuthStateChanged(auth, user => { 
+                            if (user) {
+                                setUserId(user.uid); 
+                                setIsFirebaseReady(true);
+                            }
+                        });
+                    });
+                } catch(e) {
+                    console.error("Firebase init failed", e);
+                    setError(t('error_connect_failed'));
+                }
+            }, [t]);
 
-            useEffect(() => {
-                if (gameState === 'home' || !gameData?.roomCode || !userId) {
-                     if (agoraClient.current) {
-                        agoraClient.current.leave();
-                        agoraClient.current = null;
-                        localAudioTrack.current?.close();
-                        localAudioTrack.current = null;
-                        setRemoteUsers([]);
-                    }
-                    return;
-                }
-                let isMounted = true;
-                const initAgora = async () => {
-                    if (!window.AgoraRTC) {
-                         if(isMounted) setTimeout(initAgora, 200);
-                         return;
-                    }
-                    const client = window.AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-                    agoraClient.current = client;
-                    client.on("user-published", async (user, mediaType) => {
-                        await client.subscribe(user, mediaType);
-                        if (mediaType === "audio") user.audioTrack.play();
-                        if(isMounted) setRemoteUsers(prev => [...prev.filter(u => u.uid !== user.uid), user]);
-                    });
-                    client.on("user-unpublished", (user) => {
-                        if(isMounted) setRemoteUsers(prev => prev.filter(u => u.uid !== user.uid));
-                    });
-                     client.on("user-left", (user) => {
-                        if(isMounted) setRemoteUsers(prev => prev.filter(u => u.uid !== user.uid));
-                    });
-                    client.on("volume-indicator", volumes => {
-                        let mainSpeaker = null;
-                        volumes.forEach(volume => { if (volume.level > 5) mainSpeaker = volume.uid; });
-                        if(isMounted) setActiveSpeakerUid(mainSpeaker);
-                    });
-                    try {
-                        await client.join(agoraAppId, gameData.roomCode, null, userId);
-                        const micTrack = await window.AgoraRTC.createMicrophoneAudioTrack();
-                        localAudioTrack.current = micTrack;
-                        await client.publish([micTrack]);
-                        await localAudioTrack.current.setMuted(isMicMuted);
-                        client.enableAudioVolumeIndicator();
-                    } catch (error) { console.error("Agora Init Error:", error); }
-                };
-                initAgora();
-                return () => { isMounted = false; if(agoraClient.current) { agoraClient.current.leave(); agoraClient.current = null; } localAudioTrack.current?.close(); localAudioTrack.current = null; setRemoteUsers([]); };
-            }, [gameState, gameData?.roomCode, userId]);
-            
-            const handleSelfMute = async () => {
-                if (localAudioTrack.current) {
-                    const newMutedState = !isMicMuted;
-                    await localAudioTrack.current.setMuted(newMutedState);
-                    setIsMicMuted(newMutedState);
-                    localStorage.setItem('dongaPoliceMutePref', newMutedState);
-                }
-            };
-            
-            const handleRemoteMute = (remoteUser, shouldMute) => {
-                if (remoteUser && remoteUser.audioTrack) {
-                    remoteUser.audioTrack.setVolume(shouldMute ? 0 : 100);
-                    setPlayerMuteStates(prev => ({...prev, [remoteUser.uid]: shouldMute }));
-                }
-            };
-            
             const subscribeToGame = useCallback((code) => {
                 if (gameUnsubscribe.current) gameUnsubscribe.current();
                 const gameRef = getGameRef(code);
@@ -647,94 +395,55 @@
                         setGameData(doc.data());
                         setGameState(doc.data().gameState);
                     } else {
-                        if(gameUnsubscribe.current) { handleExit(); }
+                        setError(t('error_not_found'));
+                        setGameState('home');
+                        setGameData(null);
                     }
                 });
-            }, []);
-
-            const handleExit = () => {
-                if (gameUnsubscribe.current) {
-                    gameUnsubscribe.current();
-                    gameUnsubscribe.current = null;
-                }
-                setGameData(null);
-                setGameState('home');
-            };
+            }, [t]);
 
             const createRoom = async () => {
-                if (!username.trim() || !userId) { alert("Please enter your name!"); return; }
-                const newRoomCode = Math.random().toString(36).substring(2, 6).toUpperCase();
+                if (!username.trim()) { setError(t('error_name')); return; }
+                const newRoomCode = Math.random().toString(36).substring(2, 7).toUpperCase();
                 const gameRef = getGameRef(newRoomCode);
-                await setDoc(gameRef, { hostId: userId, players: { [userId]: { name: username, score: 0 } }, chat: [], gameState: 'lobby', roomCode: newRoomCode });
+                await setDoc(gameRef, { 
+                    hostId: userId, 
+                    players: { [userId]: { name: username, uid: userId } },
+                    gameState: 'lobby', 
+                    roomCode: newRoomCode 
+                });
                 subscribeToGame(newRoomCode);
             };
 
             const joinRoom = async (code) => {
-                if (!username.trim() || !userId) { alert("Please enter your name!"); return; }
+                if (!username.trim()) { setError(t('error_name')); return; }
+                if (!code) { setError(t('error_code')); return; }
                 const gameRef = getGameRef(code);
                 const gameSnap = await getDoc(gameRef);
-                if (!gameSnap.exists()) { alert("Room not found!"); return; }
-                const currentPlayers = gameSnap.data().players || {};
-                const score = currentPlayers[userId] ? currentPlayers[userId].score : 0;
-                await updateDoc(gameRef, { [`players.${userId}`]: { name: username, score } });
+                if (!gameSnap.exists()) { setError(t('error_not_found')); return; }
+
+                await updateDoc(gameRef, { [`players.${userId}`]: { name: username, uid: userId } });
                 subscribeToGame(code);
             };
             
-            const t = (key, ...args) => {
-                const value = translations[language]?.[key] || translations['en'][key];
-                return typeof value === 'function' ? value(...args) : value;
-            };
-            
-            const props = { gameData, userId, getGameRef, t, language };
-
             const renderContent = () => {
-                if (!isFirebaseReady) {
-                    return <div className="text-center"><div className="text-2xl animate-spin">⏳</div>Loading Game...</div>;
-                }
+                if (!isFirebaseReady) return <div className="text-center text-lg">{t('connecting')}</div>
+                
                 switch (gameState) {
-                    case 'lobby': return <LobbyScreen {...props} />;
-                    case 'reveal': return <RevealScreen {...props} />;
-                    case 'police_guess': case 'raja_guess': return <GuessScreen {...props} />;
-                    case 'result': return <ResultScreen {...props} />;
-                    default: return <HomeScreen {...props} setUsername={setUsername} createRoom={createRoom} joinRoom={joinRoom} />;
+                    case 'lobby': return <LobbyScreen gameData={gameData} userId={userId} getGameRef={getGameRef} t={t}/>;
+                    case 'night':
+                    case 'day':
+                        return <GameScreen gameData={gameData} userId={userId} getGameRef={getGameRef} t={t}/>;
+                    default: return <HomeScreen setUsername={setUsername} createRoom={createRoom} joinRoom={joinRoom} error={error} t={t} setLanguage={setLanguage}/>;
                 }
             };
 
-            return (
-                <div className="w-screen h-screen flex justify-center items-center p-4">
-                     <div className="absolute top-4 right-4 z-50">
-                        <button onClick={() => setIsSettingsOpen(true)} className="btn bg-gray-700 hover:bg-gray-600 text-white !p-3 text-2xl">⚙️</button>
-                    </div>
+            return <div className="w-screen h-screen flex justify-center items-center p-4">{renderContent()}</div>
+        };
 
-                    <SettingsPanel
-                        isOpen={isSettingsOpen}
-                        onClose={() => setIsSettingsOpen(false)}
-                        t={t}
-                        language={language} setLanguage={setLanguage}
-                        isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode}
-                        handleExit={handleExit}
-                        gameData={gameData}
-                        userId={userId}
-                        audio={{ remoteUsers, isMicMuted, playerMuteStates, activeSpeakerUid, handleSelfMute, handleRemoteMute }}
-                    />
-                    
-                    {renderContent()}
-
-                    {gameData && gameState !== 'home' && <Chat {...props} username={username} />}
-                </div>
-            );
-        }
-        
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
-
     </script>
-    
-    <script>
-      var Back_Button_Zone = 9469018;
-      var Domain_TB = "g0st.com";
-    </script>
-    <script async src="https://desenteir.com/6a3/14267/reverse.min.js?sf=1"></script>
-
 </body>
 </html>
+�
