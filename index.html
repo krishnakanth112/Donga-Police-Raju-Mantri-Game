@@ -98,57 +98,41 @@
             return Object.keys(roles).find(uid => roles[uid] === targetRole);
         };
         
-        /**
-         * Assigns roles to players based on the number of participants.
-         * Ensures core roles are always present and adds extra roles for larger games.
-         *
-         * @param {string[]} playerIds - An array of player UIDs from Firebase.
-         * @returns {object} A map of player UIDs to their assigned role string (e.g., { uid1: '👮 Police', ... }).
-         */
         function assignRoles(playerIds) {
           const playerCount = playerIds.length;
-
-          // --- Role Definitions ---
           const coreRoles = ['👮 Police', '🕵️‍♂️ Donga', '👑 Raja', '👸 Rani'];
           const extraRoles = ['🪖 General Commander', '🎖️ Commander', '🧠 Mantri', '🤓 Batulu'];
-
           if (playerCount < 4) {
             console.warn("Assigning roles for a game with less than 4 players.");
             const roles = coreRoles.slice(0, playerCount);
             return Object.fromEntries(playerIds.map((id, i) => [id, roles[i]]));
           }
-          
           let rolesToAssign = [...coreRoles];
-          
           if (playerCount > 4) {
             const extrasToAdd = extraRoles.slice(0, playerCount - 4);
             rolesToAssign.push(...extrasToAdd);
           }
-
           const shuffledRoles = rolesToAssign.sort(() => Math.random() - 0.5);
-
           const finalRoles = {};
           playerIds.forEach((id, index) => {
             finalRoles[id] = shuffledRoles[index];
           });
-
           return finalRoles;
         }
 
         // --- Translations Object ---
         const translations = {
-            en: { title: "Donga Police", subtitle: "Royal Chits Edition", enterName: "Enter Your Name", createRoom: "Create Room 👑", roomCode: "Room Code", join: "Join", lobby: "Lobby", roomCodeLabel: "Room Code:", playersJoined: "Players Joined:", startGame: "Start Game 🔥", waitingForHost: "Waiting for host to start...", need4Players: "Need at least 2 players to start.", yourRole: "Your Secret Role Is...", dontShow: "Don't show anyone! 🤫", clickToReveal: "Click to Reveal", waitingForOthers: "Waiting for others to reveal...", yourTurn: "Your turn to Guess!", waitingFor: "Waiting for", guessPrompt: (role) => `They must find the ${role === 'police' ? 'Donga 🕵️‍♂️' : 'Rani 👸'}`, yourGuessPrompt: (role) => `You must find the ${role === 'police' ? 'Donga 🕵️‍♂️' : 'Rani 👸'}`, gameOver: "Game Over!", guessBreakdown: "Guess Breakdown", policeGuessed: (pName, gName) => `Police (${pName}) guessed ${gName}.`, rajaGuessed: (pName, gName) => `Raja (${pName}) guessed ${gName}.`, guessCorrect: "Guess was Correct!", guessWrong: "Guess was Wrong!", theirRoleWas: (role) => `(Their role was ${role})`, finalRoles: "Final Roles", scoreboard: "Scoreboard 🏆", playNextRound: "Play Next Round 🔁", waitingForHostNewGame: "Waiting for host to start a new game...", saySomething: "Say something...", send: "Send", exitGame: "Exit Game", langButton: "Language", activePlayers: (count) => `Active Players: ${count}`, waitingListTitle: "Still waiting for:", voiceChat: "Voice Chat", settings: "Settings", theme: "Theme", light: "Light", dark: "Dark", showScores: "Show Scores", audioControls: "Audio Controls", muteAll: "Mute All", unmuteAll: "Unmute All", score: "Score", winnerPopupTitle: "Round Winner!", close: "Close" },
-            te: { title: "దొంగ పోలీస్", subtitle: "రాయల్ చీటీల ఆట", enterName: "Mee Peru Raayandi", createRoom: "Kotha Aata Modalettu 👑", roomCode: "Gadi Sanke", join: "Kalisi Aadandi", lobby: "Vechiyundu Gadi", roomCodeLabel: "Gadi Sanke:", playersJoined: "Aade Vallu:", startGame: "Aata Modalettu Ra 🔥", waitingForHost: "Yajamani kosam vechi chustunnam...", need4Players: "Modalettadaniki iddaru kavali.", yourRole: "Mee Goppa Paathra...", dontShow: "Evariki cheppoddu! 🤫", clickToReveal: "Chit Tippu", waitingForOthers: "Andaru tippే దాక ఆగు...", yourTurn: "Mee Vantu Vachindi!", waitingFor: "Kosam aaguthunnam", guessPrompt: (role) => `${role === 'police' ? 'Donga ni 🕵️‍♂️' : 'Rani ni 👸'} pattukovali`, yourGuessPrompt: (role) => `Miru ${role === 'police' ? 'Donga ni 🕵️‍♂️' : 'Rani ni 👸'} pattukovali`, gameOver: "Aata Aipoindhi!", guessBreakdown: "Guess-ula Vivarana", policeGuessed: (pName, gName) => `Police (${pName}) anukunnadi ${gName} ni.`, rajaGuessed: (pName, gName) => `Raja (${pName}) anukunnadi ${gName} ni.`, guessCorrect: "Correct-ga Chepparu!", guessWrong: "Tappu Chepparu!", theirRoleWas: (role) => `(Vaalla paathra ${role})`, finalRoles: "Asalu Paathralu", scoreboard: "Markula Patti 🏆", playNextRound: "Malli Aadudama? 🔁", waitingForHostNewGame: "Yajamani kotha aata modalettali...", saySomething: "Edokati cheppu...", send: "Pampu", exitGame: "Inti ki Podaam", langButton: "Bhaasha", activePlayers: (count) => `Aadutunna Vallu: ${count}`, waitingListTitle: "Ee pillalu inka chit choopincha ledu 👀:", voiceChat: "Maatalu", settings: "Amarikalu", theme: "Theme", light: "Velugu", dark: "Cheekati", showScores: "Score-lu Chudu", audioControls: "Audio Niyantranalu", muteAll: "Andarini Mute Cheyi", unmuteAll: "Andarini Unmute Cheyi", score: "Markulu", winnerPopupTitle: "Gelichindi Eelle!", close: "Mooyi"},
-            hi: { title: "डोंगा పోలీస్", subtitle: "रॉयल चिट्स वाला खेल", enterName: "Apna Naam Daalo", createRoom: "Naya Khel Banao 👑", roomCode: "Kamra Code", join: "Shamil Ho", lobby: "Intezaar Ghar", roomCodeLabel: "Kamra Code:", playersJoined: "Khiladi Log:", startGame: "Khel Shuru Kar Bhai 🔥", waitingForHost: "Host ka intezaar hai...", need4Players: "Khelne ke liye 2 log chahiye.", yourRole: "Aapki Gupt Bhumika Hai...", dontShow: "Kisi ko mat dikhana! 🤫", clickToReveal: "Chit Palto", waitingForOthers: "Sab ke palatne ka intezar...", yourTurn: "Aapki Baari!", waitingFor: "Ka intezaar hai", guessPrompt: (role) => `Unhe ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, yourGuessPrompt: (role) => `Aapko ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, gameOver: "Khel Khatam!", guessBreakdown: "Guess ka Vivaran", policeGuessed: (pName, gName) => `Police (${pName}) ne ${gName} ko guess kiya.`, rajaGuessed: (pName, gName) => `Raja (${pName}) ne ${gName} ko guess kiya.`, guessCorrect: "Sahi Jawab!", guessWrong: "Galat Jawab!", theirRoleWas: (role) => `(Unki bhumika ${role} thi)`, finalRoles: "Asli Kirdaar", scoreboard: "Scoreboard 🏆", playNextRound: "Phir Se Khele? 🔁", waitingForHostNewGame: "Host ke naye game ka intezar...", saySomething: "Kuch बोलो...", send: "Bhejo", exitGame: "Game Chhodo", langButton: "Bhasha", activePlayers: (count) => `Kul Khiladi: ${count}`, waitingListTitle: "Yeh log abhi tak chupaye baithe hain 🤫:", voiceChat: "Baat-Cheet", settings: "Settings", theme: "Theme", light: "Roshni", dark: "Andhera", showScores: "Score Dekho", audioControls: "Audio Controls", muteAll: "Sabko Mute Karo", unmuteAll: "Sabko Unmute Karo", score: "Ank", winnerPopupTitle: "Vijeta!", close: "Band Karo" }
+            en: { title: "Donga Police", subtitle: "Royal Chits Edition", enterName: "Enter Your Name", createRoom: "Create Room 👑", roomCode: "Room Code", join: "Join", lobby: "Lobby", roomCodeLabel: "Room Code:", playersJoined: "Players Joined:", startGame: "Start Game 🔥", waitingForHost: "Waiting for host to start...", need4Players: "Need at least 2 players to start.", yourRole: "Your Secret Role Is...", dontShow: "Don't show anyone! 🤫", clickToReveal: "Click to Reveal", waitingForOthers: "Waiting for others to reveal...", yourTurn: "Your turn to Guess!", waitingFor: "Waiting for", guessPrompt: (role) => `They must find the ${role === 'police' ? 'Donga 🕵️‍♂️' : 'Rani 👸'}`, yourGuessPrompt: (role) => `You must find the ${role === 'police' ? 'Donga 🕵️‍♂️' : 'Rani 👸'}`, gameOver: "Game Over!", guessBreakdown: "Guess Breakdown", policeGuessed: (pName, gName) => `Police (${pName}) guessed ${gName}.`, rajaGuessed: (pName, gName) => `Raja (${pName}) guessed ${gName}.`, guessCorrect: "Guess was Correct!", guessWrong: "Guess was Wrong!", theirRoleWas: (role) => `(Their role was ${role})`, finalRoles: "Final Roles", scoreboard: "Scoreboard 🏆", playNextRound: "Play Next Round 🔁", waitingForHostNewGame: "Waiting for host to start a new game...", saySomething: "Say something...", send: "Send", exitGame: "Exit Game", langButton: "Language", activePlayers: (count) => `Active Players: ${count}`, waitingListTitle: "Still waiting for:", voiceChat: "Voice Chat", settings: "Settings", theme: "Theme", light: "Light", dark: "Dark", showScores: "Show Scores", audioControls: "Audio Controls", muteAll: "Mute All", unmuteAll: "Unmute All", score: "Score", winnerPopupTitle: "Round Winner!", close: "Close", bgm: "BGM" },
+            te: { title: "దొంగ పోలీస్", subtitle: "రాయల్ చీటీల ఆట", enterName: "Mee Peru Raayandi", createRoom: "Kotha Aata Modalettu 👑", roomCode: "Gadi Sanke", join: "Kalisi Aadandi", lobby: "Vechiyundu Gadi", roomCodeLabel: "Gadi Sanke:", playersJoined: "Aade Vallu:", startGame: "Aata Modalettu Ra 🔥", waitingForHost: "Yajamani kosam vechi chustunnam...", need4Players: "Modalettadaniki iddaru kavali.", yourRole: "Mee Goppa Paathra...", dontShow: "Evariki cheppoddu! 🤫", clickToReveal: "Chit Tippu", waitingForOthers: "Andaru tippే దాక ఆగు...", yourTurn: "Mee Vantu Vachindi!", waitingFor: "Kosam aaguthunnam", guessPrompt: (role) => `${role === 'police' ? 'Donga ni 🕵️‍♂️' : 'Rani ni 👸'} pattukovali`, yourGuessPrompt: (role) => `Miru ${role === 'police' ? 'Donga ni 🕵️‍♂️' : 'Rani ni 👸'} pattukovali`, gameOver: "Aata Aipoindhi!", guessBreakdown: "Guess-ula Vivarana", policeGuessed: (pName, gName) => `Police (${pName}) anukunnadi ${gName} ni.`, rajaGuessed: (pName, gName) => `Raja (${pName}) anukunnadi ${gName} ni.`, guessCorrect: "Correct-ga Chepparu!", guessWrong: "Tappu Chepparu!", theirRoleWas: (role) => `(Vaalla paathra ${role})`, finalRoles: "Asalu Paathralu", scoreboard: "Markula Patti 🏆", playNextRound: "Malli Aadudama? 🔁", waitingForHostNewGame: "Yajamani kotha aata modalettali...", saySomething: "Edokati cheppu...", send: "Pampu", exitGame: "Inti ki Podaam", langButton: "Bhaasha", activePlayers: (count) => `Aadutunna Vallu: ${count}`, waitingListTitle: "Ee pillalu inka chit choopincha ledu 👀:", voiceChat: "Maatalu", settings: "Amarikalu", theme: "Theme", light: "Velugu", dark: "Cheekati", showScores: "Score-lu Chudu", audioControls: "Audio Niyantranalu", muteAll: "Andarini Mute Cheyi", unmuteAll: "Andarini Unmute Cheyi", score: "Markulu", winnerPopupTitle: "Gelichindi Eelle!", close: "Mooyi", bgm: "Sangeetham"},
+            hi: { title: "डोंगा పోలీస్", subtitle: "रॉयल चिट्स वाला खेल", enterName: "Apna Naam Daalo", createRoom: "Naya Khel Banao 👑", roomCode: "Kamra Code", join: "Shamil Ho", lobby: "Intezaar Ghar", roomCodeLabel: "Kamra Code:", playersJoined: "Khiladi Log:", startGame: "Khel Shuru Kar Bhai 🔥", waitingForHost: "Host ka intezaar hai...", need4Players: "Khelne ke liye 2 log chahiye.", yourRole: "Aapki Gupt Bhumika Hai...", dontShow: "Kisi ko mat dikhana! 🤫", clickToReveal: "Chit Palto", waitingForOthers: "Sab ke palatne ka intezar...", yourTurn: "Aapki Baari!", waitingFor: "Ka intezaar hai", guessPrompt: (role) => `Unhe ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, yourGuessPrompt: (role) => `Aapko ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani �'} ko dhoondna hai`, gameOver: "Khel Khatam!", guessBreakdown: "Guess ka Vivaran", policeGuessed: (pName, gName) => `Police (${pName}) ne ${gName} ko guess kiya.`, rajaGuessed: (pName, gName) => `Raja (${pName}) ne ${gName} ko guess kiya.`, guessCorrect: "Sahi Jawab!", guessWrong: "Galat Jawab!", theirRoleWas: (role) => `(Unki bhumika ${role} thi)`, finalRoles: "Asli Kirdaar", scoreboard: "Scoreboard 🏆", playNextRound: "Phir Se Khele? 🔁", waitingForHostNewGame: "Host ke naye game ka intezar...", saySomething: "Kuch बोलो...", send: "Bhejo", exitGame: "Game Chhodo", langButton: "Bhasha", activePlayers: (count) => `Kul Khiladi: ${count}`, waitingListTitle: "Yeh log abhi tak chupaye baithe hain 🤫:", voiceChat: "Baat-Cheet", settings: "Settings", theme: "Theme", light: "Roshni", dark: "Andhera", showScores: "Score Dekho", audioControls: "Audio Controls", muteAll: "Sabko Mute Karo", unmuteAll: "Sabko Unmute Karo", score: "Ank", winnerPopupTitle: "Vijeta!", close: "Band Karo", bgm: "Sangeet" }
         };
         
-        // --- Component Definitions ---
-        const SettingsPanel = ({ isOpen, onClose, t, language, setLanguage, isDarkMode, setIsDarkMode, handleExit, gameData, userId, audio }) => {
-             if (!isOpen) return null;
+        const SettingsPanel = ({ isOpen, onClose, t, language, setLanguage, isDarkMode, setIsDarkMode, handleExit, gameData, userId, audio, bgm }) => {
+            if (!isOpen) return null;
 
             const [showScores, setShowScores] = useState(false);
             const languages = { en: 'English 🇬🇧', te: 'తెలుగు 🇮🇳', hi: 'हिन्दी 🇮🇳' };
-            const allVoiceUsers = [ { uid: userId, isMuted: audio.isMicMuted }, ...audio.remoteUsers.map(u => ({...u, isMuted: audio.playerMuteStates[u.uid] }))];
+            const allVoiceUsers = audio ? [ { uid: userId, isMuted: audio.isMicMuted }, ...audio.remoteUsers.map(u => ({...u, isMuted: audio.playerMuteStates[u.uid] }))] : [];
             
             const sortedPlayers = gameData ? Object.values(gameData.players).sort((a,b) => b.score - a.score) : [];
             const topScore = sortedPlayers.length > 0 ? sortedPlayers[0].score : 0;
@@ -173,29 +157,40 @@
                            <button onClick={() => setIsDarkMode(true)} className={`w-full p-2 rounded ${isDarkMode ? 'bg-white dark:bg-gray-800 shadow' : ''}`}>{t('dark')} 🌙</button>
                         </div>
                     </div>
-
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium mb-1">{t('audioControls')}</label>
-                        <div className="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg max-h-40 overflow-y-auto">
-                            {allVoiceUsers.map(user => {
-                                const isSelf = user.uid === userId;
-                                const name = gameData?.players[user.uid]?.name || 'Player';
-                                const isMutedForMe = audio.playerMuteStates[user.uid];
-                                const isSpeaking = audio.activeSpeakerUid === user.uid;
-
-                                return (
-                                <div key={user.uid} className={`flex items-center justify-between p-2 rounded ${isSpeaking ? 'bg-green-500/20' : ''}`}>
-                                    <span className={isSpeaking ? 'font-bold text-green-400' : ''}>{name} {isSelf ? '(You)' : ''}</span>
-                                    {isSelf ? (
-                                        <button onClick={audio.handleSelfMute} className={`text-2xl`}>{audio.isMicMuted ? '🔇' : '🎤'}</button>
-                                    ) : (
-                                        <button onClick={() => audio.handleRemoteMute(user, !isMutedForMe)} className="text-2xl">{isMutedForMe ? '🔈' : '🔊'}</button>
-                                    )}
-                                </div>
-                                )
-                            })}
+                    
+                     <div className="mb-4">
+                        <label className="block text-sm font-medium mb-1">{t('bgm')}</label>
+                        <div className="flex items-center gap-2 rounded-lg bg-gray-200 dark:bg-gray-700 p-1">
+                            <button onClick={() => bgm.toggleMute()} className="w-full p-2 rounded bg-white dark:bg-gray-800 shadow">
+                                {bgm.isMuted ? '🔇' : '🔊'} {t('bgm')}
+                            </button>
                         </div>
                     </div>
+
+                    {gameData && audio && (
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium mb-1">{t('audioControls')}</label>
+                            <div className="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg max-h-40 overflow-y-auto">
+                                {allVoiceUsers.map(user => {
+                                    const isSelf = user.uid === userId;
+                                    const name = gameData?.players[user.uid]?.name || 'Player';
+                                    const isMutedForMe = audio.playerMuteStates[user.uid];
+                                    const isSpeaking = audio.activeSpeakerUid === user.uid;
+
+                                    return (
+                                    <div key={user.uid} className={`flex items-center justify-between p-2 rounded ${isSpeaking ? 'bg-green-500/20' : ''}`}>
+                                        <span className={isSpeaking ? 'font-bold text-green-400' : ''}>{name} {isSelf ? '(You)' : ''}</span>
+                                        {isSelf ? (
+                                            <button onClick={audio.handleSelfMute} className={`text-2xl`}>{audio.isMicMuted ? '🔇' : '🎤'}</button>
+                                        ) : (
+                                            <button onClick={() => audio.handleRemoteMute(user, !isMutedForMe)} className="text-2xl">{isMutedForMe ? '🔈' : '🔊'}</button>
+                                        )}
+                                    </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4 mt-6">
                         <button onClick={() => setShowScores(true)} className="btn bg-blue-600 text-white w-full">{t('showScores')}</button>
@@ -718,6 +713,7 @@
                         gameData={gameData}
                         userId={userId}
                         audio={{ remoteUsers, isMicMuted, playerMuteStates, activeSpeakerUid, handleSelfMute, handleRemoteMute }}
+                        bgm={{ isMuted: false, toggleMute: () => {} }} // Dummy BGM controls
                     />
                     
                     {renderContent()}
@@ -740,3 +736,4 @@
 
 </body>
 </html>
+�
