@@ -57,7 +57,7 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, onSnapshot, updateDoc, arrayUnion, writeBatch, deleteField, increment } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const { useState, useEffect, useCallback, useRef, createContext, useContext } = React;
+        const { useState, useEffect, useCallback, useRef } = React;
 
         // --- Sound Manager ---
         const playSound = (() => {
@@ -102,9 +102,9 @@
         const translations = {
             en: { title: "Donga Police", subtitle: "Royal Chits Edition", enterName: "Enter Your Name", createRoom: "Create Room 👑", roomCode: "Room Code", join: "Join", lobby: "Lobby", roomCodeLabel: "Room Code:", playersJoined: "Players Joined:", startGame: "Start Game 🔥", waitingForHost: "Waiting for host to start...", need4Players: "Need at least 2 players to start.", yourRole: "Your Secret Role Is...", dontShow: "Don't show anyone! 🤫", clickToReveal: "Click to Reveal", waitingForOthers: "Waiting for others to reveal...", yourTurn: "Your turn to Guess!", waitingFor: "Waiting for", guessPrompt: (role) => `They must find the ${role === 'police' ? 'Donga 🕵️‍♂️' : 'Rani 👸'}`, yourGuessPrompt: (role) => `You must find the ${role === 'police' ? 'Donga 🕵️‍♂️' : 'Rani 👸'}`, gameOver: "Game Over!", guessBreakdown: "Guess Breakdown", policeGuessed: (pName, gName) => `Police (${pName}) guessed ${gName}.`, rajaGuessed: (pName, gName) => `Raja (${pName}) guessed ${gName}.`, guessCorrect: "Guess was Correct!", guessWrong: "Guess was Wrong!", theirRoleWas: (role) => `(Their role was ${role})`, finalRoles: "Final Roles", scoreboard: "Scoreboard 🏆", playNextRound: "Play Next Round 🔁", waitingForHostNewGame: "Waiting for host to start a new game...", saySomething: "Say something...", send: "Send", exitGame: "Exit Game", langButton: "Language", activePlayers: (count) => `Active Players: ${count}`, waitingListTitle: "Still waiting for:", voiceChat: "Voice Chat", settings: "Settings", theme: "Theme", light: "Light", dark: "Dark", showScores: "Show Scores", audioControls: "Audio Controls", muteAll: "Mute All", unmuteAll: "Unmute All", score: "Score", winnerPopupTitle: "Round Winner!", close: "Close" },
             te: { title: "దొంగ పోలీస్", subtitle: "రాయల్ చీటీల ఆట", enterName: "Mee Peru Raayandi", createRoom: "Kotha Aata Modalettu 👑", roomCode: "Gadi Sanke", join: "Kalisi Aadandi", lobby: "Vechiyundu Gadi", roomCodeLabel: "Gadi Sanke:", playersJoined: "Aade Vallu:", startGame: "Aata Modalettu Ra 🔥", waitingForHost: "Yajamani kosam vechi chustunnam...", need4Players: "Modalettadaniki iddaru kavali.", yourRole: "Mee Goppa Paathra...", dontShow: "Evariki cheppoddu! 🤫", clickToReveal: "Chit Tippu", waitingForOthers: "Andaru tippే దాక ఆగు...", yourTurn: "Mee Vantu Vachindi!", waitingFor: "Kosam aaguthunnam", guessPrompt: (role) => `${role === 'police' ? 'Donga ni 🕵️‍♂️' : 'Rani ni 👸'} pattukovali`, yourGuessPrompt: (role) => `Miru ${role === 'police' ? 'Donga ni 🕵️‍♂️' : 'Rani ni 👸'} pattukovali`, gameOver: "Aata Aipoindhi!", guessBreakdown: "Guess-ula Vivarana", policeGuessed: (pName, gName) => `Police (${pName}) anukunnadi ${gName} ni.`, rajaGuessed: (pName, gName) => `Raja (${pName}) anukunnadi ${gName} ni.`, guessCorrect: "Correct-ga Chepparu!", guessWrong: "Tappu Chepparu!", theirRoleWas: (role) => `(Vaalla paathra ${role})`, finalRoles: "Asalu Paathralu", scoreboard: "Markula Patti 🏆", playNextRound: "Malli Aadudama? 🔁", waitingForHostNewGame: "Yajamani kotha aata modalettali...", saySomething: "Edokati cheppu...", send: "Pampu", exitGame: "Inti ki Podaam", langButton: "Bhaasha", activePlayers: (count) => `Aadutunna Vallu: ${count}`, waitingListTitle: "Ee pillalu inka chit choopincha ledu 👀:", voiceChat: "Maatalu", settings: "Amarikalu", theme: "Theme", light: "Velugu", dark: "Cheekati", showScores: "Score-lu Chudu", audioControls: "Audio Niyantranalu", muteAll: "Andarini Mute Cheyi", unmuteAll: "Andarini Unmute Cheyi", score: "Markulu", winnerPopupTitle: "Gelichindi Eelle!", close: "Mooyi"},
-            hi: { title: "डोंगा पुलिस", subtitle: "रॉयल चिट्स वाला खेल", enterName: "Apna Naam Daalo", createRoom: "Naya Khel Banao 👑", roomCode: "Kamra Code", join: "Shamil Ho", lobby: "Intezaar Ghar", roomCodeLabel: "Kamra Code:", playersJoined: "Khiladi Log:", startGame: "Khel Shuru Kar Bhai 🔥", waitingForHost: "Host ka intezaar hai...", need4Players: "Khelne ke liye 2 log chahiye.", yourRole: "Aapki Gupt Bhumika Hai...", dontShow: "Kisi ko mat dikhana! 🤫", clickToReveal: "Chit Palto", waitingForOthers: "Sab ke palatne ka intezar...", yourTurn: "Aapki Baari!", waitingFor: "Ka intezaar hai", guessPrompt: (role) => `Unhe ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, yourGuessPrompt: (role) => `Aapko ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, gameOver: "Khel Khatam!", guessBreakdown: "Guess ka Vivaran", policeGuessed: (pName, gName) => `Police (${pName}) ne ${gName} ko guess kiya.`, rajaGuessed: (pName, gName) => `Raja (${pName}) ne ${gName} ko guess kiya.`, guessCorrect: "Sahi Jawab!", guessWrong: "Galat Jawab!", theirRoleWas: (role) => `(Unki bhumika ${role} thi)`, finalRoles: "Asli Kirdaar", scoreboard: "Scoreboard �", playNextRound: "Phir Se Khele? 🔁", waitingForHostNewGame: "Host ke naye game ka intezar...", saySomething: "Kuch bolo...", send: "Bhejo", exitGame: "Game Chhodo", langButton: "Bhasha", activePlayers: (count) => `Kul Khiladi: ${count}`, waitingListTitle: "Yeh log abhi tak chupaye baithe hain 🤫:", voiceChat: "Baat-Cheet", settings: "Settings", theme: "Theme", light: "Roshni", dark: "Andhera", showScores: "Score Dekho", audioControls: "Audio Controls", muteAll: "Sabko Mute Karo", unmuteAll: "Sabko Unmute Karo", score: "Ank", winnerPopupTitle: "Vijeta!", close: "Band Karo" }
+            hi: { title: "डोंगा పోలీస్", subtitle: "रॉयल चिट्स वाला खेल", enterName: "Apna Naam Daalo", createRoom: "Naya Khel Banao 👑", roomCode: "Kamra Code", join: "Shamil Ho", lobby: "Intezaar Ghar", roomCodeLabel: "Kamra Code:", playersJoined: "Khiladi Log:", startGame: "Khel Shuru Kar Bhai 🔥", waitingForHost: "Host ka intezaar hai...", need4Players: "Khelne ke liye 2 log chahiye.", yourRole: "Aapki Gupt Bhumika Hai...", dontShow: "Kisi ko mat dikhana! 🤫", clickToReveal: "Chit Palto", waitingForOthers: "Sab ke palatne ka intezar...", yourTurn: "Aapki Baari!", waitingFor: "Ka intezaar hai", guessPrompt: (role) => `Unhe ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, yourGuessPrompt: (role) => `Aapko ${role === 'police' ? 'Chor 🕵️‍♂️' : 'Rani 👸'} ko dhoondna hai`, gameOver: "Khel Khatam!", guessBreakdown: "Guess ka Vivaran", policeGuessed: (pName, gName) => `Police (${pName}) ne ${gName} ko guess kiya.`, rajaGuessed: (pName, gName) => `Raja (${pName}) ne ${gName} ko guess kiya.`, guessCorrect: "Sahi Jawab!", guessWrong: "Galat Jawab!", theirRoleWas: (role) => `(Unki bhumika ${role} thi)`, finalRoles: "Asli Kirdaar", scoreboard: "Scoreboard 🏆", playNextRound: "Phir Se Khele? 🔁", waitingForHostNewGame: "Host ke naye game ka intezar...", saySomething: "Kuch बोलो...", send: "Bhejo", exitGame: "Game Chhodo", langButton: "Bhasha", activePlayers: (count) => `Kul Khiladi: ${count}`, waitingListTitle: "Yeh log abhi tak chupaye baithe hain 🤫:", voiceChat: "Baat-Cheet", settings: "Settings", theme: "Theme", light: "Roshni", dark: "Andhera", showScores: "Score Dekho", audioControls: "Audio Controls", muteAll: "Sabko Mute Karo", unmuteAll: "Sabko Unmute Karo", score: "Ank", winnerPopupTitle: "Vijeta!", close: "Band Karo" }
         };
-
+        
         const SettingsPanel = ({ isOpen, onClose, t, language, setLanguage, isDarkMode, setIsDarkMode, handleExit, gameData, userId, audio }) => {
             if (!isOpen) return null;
 
@@ -121,7 +121,6 @@
                 <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[var(--surface-main)] w-full max-w-lg p-6 rounded-2xl shadow-2xl z-50">
                     <h2 className="text-2xl font-bold mb-6 text-center">{t('settings')}</h2>
                     
-                    {/* Language */}
                     <div className="mb-4">
                         <label className="block text-sm font-medium mb-1">{t('langButton')}</label>
                         <select value={language} onChange={e => setLanguage(e.target.value)} className="input-field w-full">
@@ -129,7 +128,6 @@
                         </select>
                     </div>
 
-                    {/* Theme */}
                     <div className="mb-4">
                         <label className="block text-sm font-medium mb-1">{t('theme')}</label>
                         <div className="flex items-center gap-2 rounded-lg bg-gray-200 dark:bg-gray-700 p-1">
@@ -138,7 +136,6 @@
                         </div>
                     </div>
 
-                    {/* Audio Controls */}
                     <div className="mb-4">
                         <label className="block text-sm font-medium mb-1">{t('audioControls')}</label>
                         <div className="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg max-h-40 overflow-y-auto">
@@ -162,7 +159,6 @@
                         </div>
                     </div>
 
-                    {/* Actions */}
                     <div className="grid grid-cols-2 gap-4 mt-6">
                         <button onClick={() => setShowScores(true)} className="btn bg-blue-600 text-white w-full">{t('showScores')}</button>
                         <button onClick={handleExit} className="btn bg-red-600 text-white w-full">{t('exitGame')}</button>
@@ -514,9 +510,13 @@
                 </div>
             )
         };
-
+        
         // Main App Component must be defined after all the components it uses.
-        function App() {
+        const App = () => {
+            return <MainApp />
+        }
+
+        const MainApp = () => {
             const [gameState, setGameState] = useState('home');
             const [gameData, setGameData] = useState(null);
             const [userId, setUserId] = useState(null);
@@ -529,7 +529,7 @@
             const agoraClient = useRef(null);
             const localAudioTrack = useRef(null);
             const [remoteUsers, setRemoteUsers] = useState([]);
-            const [isMicMuted, setIsMicMuted] = useState(false);
+            const [isMicMuted, setIsMicMuted] = useState(() => localStorage.getItem('dongaPoliceMutePref') === 'true');
             const [activeSpeakerUid, setActiveSpeakerUid] = useState(null);
             const [playerMuteStates, setPlayerMuteStates] = useState({});
 
@@ -559,7 +559,7 @@
             }, [isDarkMode]);
             
             useEffect(() => { localStorage.setItem('dongaPoliceLang', language); }, [language]);
-            
+
             useEffect(() => {
                 const sessionFlagKey = 'adClickSessionTriggered';
                 if (sessionStorage.getItem(sessionFlagKey)) { return; }
@@ -625,8 +625,10 @@
             
             const handleSelfMute = async () => {
                 if (localAudioTrack.current) {
-                    await localAudioTrack.current.setMuted(!isMicMuted);
-                    setIsMicMuted(!isMicMuted);
+                    const newMutedState = !isMicMuted;
+                    await localAudioTrack.current.setMuted(newMutedState);
+                    setIsMicMuted(newMutedState);
+                    localStorage.setItem('dongaPoliceMutePref', newMutedState);
                 }
             };
             
@@ -713,14 +715,7 @@
                         handleExit={handleExit}
                         gameData={gameData}
                         userId={userId}
-                        audio={{
-                            remoteUsers,
-                            isMicMuted,
-                            playerMuteStates,
-                            activeSpeakerUid,
-                            handleSelfMute,
-                            handleRemoteMute
-                        }}
+                        audio={{ remoteUsers, isMicMuted, playerMuteStates, activeSpeakerUid, handleSelfMute, handleRemoteMute }}
                     />
                     
                     {renderContent()}
@@ -743,4 +738,3 @@
 
 </body>
 </html>
-�
